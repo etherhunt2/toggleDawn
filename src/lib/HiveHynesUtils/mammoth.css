@@ -1,0 +1,67 @@
+.doc-content {
+    text-align: left; /* Default alignment */
+}
+
+.doc-content .text-center {
+    text-align: center;
+}
+
+.doc-content .text-left {
+    text-align: left;
+}
+
+.doc-content .text-right {
+    text-align: right;
+}
+
+.doc-content .title {
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.doc-content .subtitle {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.doc-content .heading1 {
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.doc-content .heading2 {
+    font-size: 1.75em;
+    font-weight: bold;
+}
+
+.doc-content .heading3 {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.doc-content .heading4 {
+    font-size: 1.25em;
+    font-weight: bold;
+}
+
+.doc-content .heading5 {
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.doc-content .heading6 {
+    font-size: 0.875em;
+    font-weight: bold;
+}
+
+.doc-content .normal {
+    font-size: 1em;
+}
+
+.doc-content strong {
+    font-weight: bold;
+}
+
+.doc-content em {
+    font-style: italic;
+}

@@ -1,0 +1,26 @@
+I want to create Next.js App using Tailwind CSS for style, and ShadCN UI, whereas for animation, use GSAP, framer-motion, and lenis. Here is the instruction to proceed:
+#Homepage:
+           -  Navbar: Logo in left side and react-switch, Login Button and search box in right side. In mobile device when user click on search, than a full screen search will appear and on click close button search bar shrink back to it's position with animation. When user scroll down than Navbar will be transluant and fixed at top.
+            - Body: Display Animated Dummy cards, must animate on hover and while scroll. Additionally, On hover Card: three cards will be start sliding images, currently use three dummy images. Whereas another three cards will play dummy video repeatly with no sound.
+             -Sidebar: Create a Collapsable sidebar like animated drawer. Add currently some navigation links, dummy banner and dummy cards.
+           - Footer: Currently create animated Fotter with copyright text and animated social media icons and contact details and dummy navigation links.
+
+#Functionality: 
+        - On click react-switch to dark mode, than turn background dark and glow neon effect on every element and on every components across the application.
+          - On click Login button, Pop up and render login form component to login user. Once user logged in successfully than display Dashboard Button in Place of Login Button.
+
+Important to note again: must handle neon effect dark mode and non-neon effect light mode using react switch. And create ThemeContext to handle it. And auth Context to secure Dashboard navigation and all the pages in Dashboard.
+
+#When Click on Homepage Card Redirect to bookshelf Page:
+       Open another page, where again display dummy cards as you created for Homepage. Before Footer Create some 5 animated cards which should be different from above cards without any images or video. Only Titile with view button.
+
+# NoteShelf Page:
+        When user click on any card in bookShelf page than again display animated cards of Notes With Title and other dummy details with an Image.
+
+#display Note Page:
+          Simply when user click on any card in NoteShelf Page than display Content with Hero section. And Hero Section should contain animated image in bakground. And display basic details related to note like date, author, category, label, etc in lower side. Title in Center of Image.
+              After hero section display Lorem Ipsum dummy content. And After Content Display animated neon effect author box with details like author image, Name, Animated Social icon links, etc.
+               Below Author Section, Display Next animated previous and next note cards in left and right side respectively with animated navigation icon. And these cards will adjust automatically in mobile device. When Hover mouse on these cards than mouse cursor pointer change to rounded navigation icon.
+                    Also if user normally swipe left and right on screen than display previous and next note respectively.
+
+Pro Tip: Keep calm, read full instruction first before coding to determine the structure, algorithm and configuration. Must write backend code for user auth and save cookies. and enable cache system in entire application. If you have any doubt and need any clarification, than stop coding imidiately ask anytime while this process.
