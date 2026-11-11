@@ -1,88 +1,49 @@
 import type { Metadata } from 'next/types'
-
-import { CollectionArchive } from '@/components/CollectionArchive'
+import { headers as getHeaders } from 'next/headers'
+import { redirect } from 'next/navigation'
+import React from 'react'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import React from 'react'
-import { Search } from '@/search/Component'
-import PageClient from './page.client'
-import { CardPostData } from '@/components/Card'
+import { CodexSearchClient } from '@/search/CodexSearchClient'
+
+export const dynamic = 'force-dynamic'
 
 type Args = {
   searchParams: Promise<{
-    q: string
+    q?: string
   }>
 }
-export default async function Page({ searchParams: searchParamsPromise }: Args) {
-  const { q: query } = await searchParamsPromise
-  const payload = await getPayload({ config: configPromise })
 
-  const posts = await payload.find({
-    collection: 'search',
-    depth: 1,
-    limit: 12,
-    select: {
-      title: true,
-      slug: true,
-      categories: true,
-      meta: true,
-    },
-    // pagination: false reduces overhead if you don't need totalDocs
-    pagination: false,
-    ...(query
-      ? {
-          where: {
-            or: [
-              {
-                title: {
-                  like: query,
-                },
-              },
-              {
-                'meta.description': {
-                  like: query,
-                },
-              },
-              {
-                'meta.title': {
-                  like: query,
-                },
-              },
-              {
-                slug: {
-                  like: query,
-                },
-              },
-            ],
-          },
-        }
-      : {}),
-  })
+export default async function Page({ searchParams: searchParamsPromise }: Args) {
+  const payload = await getPayload({ config: configPromise })
+  const headers = await getHeaders()
+
+  let user = null
+  try {
+    const authResult = await payload.auth({ headers })
+    user = authResult.user || null
+  } catch (_e) {
+    user = null
+  }
+
+  // Restrict access to authenticated operators
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { q = '' } = (await searchParamsPromise) || {}
 
   return (
-    <div className="pt-24 pb-24">
-      <PageClient />
-      <div className="container mb-16">
-        <div className="prose dark:prose-invert max-w-none text-center">
-          <h1 className="mb-8 lg:mb-16">Search</h1>
-
-          <div className="max-w-[50rem] mx-auto">
-            <Search />
-          </div>
-        </div>
-      </div>
-
-      {posts.totalDocs > 0 ? (
-        <CollectionArchive posts={posts.docs as CardPostData[]} />
-      ) : (
-        <div className="container">No results found.</div>
-      )}
+    <div className="min-h-screen pt-20 pb-24 bg-[#02060d] text-slate-100">
+      <div className="scanline-overlay pointer-events-none" />
+      <CodexSearchClient initialQuery={q} />
     </div>
   )
 }
 
 export function generateMetadata(): Metadata {
   return {
-    title: `Payload Website Template Search`,
+    title: `Elasticsearch Codex // ToggleDawn`,
+    description: `High-dimensional fuzzy BM25 neural search across books, formulas, notes, and flashcards.`,
   }
 }

@@ -1,31 +1,54 @@
-import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
-import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { Plugin } from 'payload'
 import { revalidateRedirects } from '@/hooks/revalidateRedirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
-import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
 
-import { Page, Post } from '@/payload-types'
+import { Book, Chapter, Note, Page } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
 
-const generateTitle: GenerateTitle<Post | Page> = ({ doc }) => {
-  return doc?.title ? `${doc.title} | Payload Website Template` : 'Payload Website Template'
+/**
+ * Generate SEO title:
+ * Note: "Note Title | Chapter Title | Book Title | ToggleDawn"
+ * Chapter: "Chapter Title | Book Title | ToggleDawn"
+ * Book: "Book Title | ToggleDawn"
+ * Page: "Page Title | ToggleDawn"
+ */
+const generateTitle: GenerateTitle<Book | Chapter | Note | Page> = ({ doc }) => {
+  return doc?.title ? `${doc.title} | ToggleDawn` : 'ToggleDawn'
 }
 
-const generateURL: GenerateURL<Post | Page> = ({ doc }) => {
+/**
+ * Generate SEO URL:
+ * Book: /books/{slug}
+ * Chapter: /books/{book-slug}/{slug}
+ * Note: /books/{book-slug}/{chapter-slug}/{slug}
+ * Page: /{slug}
+ */
+const generateURL: GenerateURL<Book | Chapter | Note | Page> = ({ doc }) => {
   const url = getServerSideURL()
-
-  return doc?.slug ? `${url}/${doc.slug}` : url
+  if (!doc?.slug) return url
+  if ('mission' in doc) {
+    // Book
+    return `${url}/books/${doc.slug}`
+  }
+  if ('book' in doc) {
+    // Chapter
+    return `${url}/books/${doc.slug}`
+  }
+  if ('chapter' in doc) {
+    // Note
+    return `${url}/books/${doc.slug}`
+  }
+  return doc.slug === 'home' ? url : `${url}/${doc.slug}`
 }
 
 export const plugins: Plugin[] = [
   redirectsPlugin({
-    collections: ['pages', 'posts'],
+    collections: ['pages', 'books', 'chapters', 'notes'],
     overrides: {
       // @ts-expect-error - This is a valid override, mapped fields don't resolve to the same type
       fields: ({ defaultFields }) => {
@@ -46,42 +69,13 @@ export const plugins: Plugin[] = [
       },
     },
   }),
-  nestedDocsPlugin({
-    collections: ['categories'],
-    generateURL: (docs) => docs.reduce((url, doc) => `${url}/${doc.slug}`, ''),
-  }),
   seoPlugin({
+    collections: ['pages', 'books', 'chapters', 'notes'],
     generateTitle,
     generateURL,
   }),
-  formBuilderPlugin({
-    fields: {
-      payment: false,
-    },
-    formOverrides: {
-      fields: ({ defaultFields }) => {
-        return defaultFields.map((field) => {
-          if ('name' in field && field.name === 'confirmationMessage') {
-            return {
-              ...field,
-              editor: lexicalEditor({
-                features: ({ rootFeatures }) => {
-                  return [
-                    ...rootFeatures,
-                    FixedToolbarFeature(),
-                    HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
-                  ]
-                },
-              }),
-            }
-          }
-          return field
-        })
-      },
-    },
-  }),
   searchPlugin({
-    collections: ['posts'],
+    collections: ['pages', 'books', 'chapters', 'notes'],
     beforeSync: beforeSyncWithSearch,
     searchOverrides: {
       fields: ({ defaultFields }) => {

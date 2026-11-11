@@ -1,22 +1,21 @@
 import type { CollectionSlug, GlobalSlug, Payload, PayloadRequest, File } from 'payload'
 
-import { contactForm as contactFormData } from './contact-form'
 import { contact as contactPageData } from './contact-page'
-import { home } from './home'
 import { image1 } from './image-1'
 import { image2 } from './image-2'
 import { imageHero1 } from './image-hero-1'
-import { post1 } from './post-1'
-import { post2 } from './post-2'
-import { post3 } from './post-3'
 
 const collections: CollectionSlug[] = [
+  'notes',
+  'chapters',
+  'books',
+  'missions',
+  'projects',
+  'time-logs',
+  'test-scores',
   'categories',
   'media',
   'pages',
-  'posts',
-  'forms',
-  'form-submissions',
   'search',
 ]
 
@@ -59,15 +58,12 @@ export const seed = async ({
     ),
   )
 
-  await Promise.all(
-    collections.map((collection) => payload.db.deleteMany({ collection, req, where: {} })),
-  )
-
-  await Promise.all(
-    collections
-      .filter((collection) => Boolean(payload.collections[collection].config.versions))
-      .map((collection) => payload.db.deleteVersions({ collection, req, where: {} })),
-  )
+  for (const collection of collections) {
+    if (Boolean(payload.collections[collection]?.config?.versions)) {
+      await payload.db.deleteVersions({ collection, req, where: {} })
+    }
+    await payload.db.deleteMany({ collection, req, where: {} })
+  }
 
   payload.logger.info(`— Seeding demo author and user...`)
 
@@ -105,6 +101,7 @@ export const seed = async ({
         name: 'Demo Author',
         email: 'demo-author@example.com',
         password: 'password',
+        role: 'user',
       },
     }),
     payload.create({
@@ -127,77 +124,122 @@ export const seed = async ({
       data: imageHero1,
       file: hero1Buffer,
     }),
+  ])
+
+  await Promise.all(
     categories.map((category) =>
       payload.create({
         collection: 'categories',
+        draft: false,
         data: {
           title: category,
           slug: category,
+          type: 'general',
         },
       }),
     ),
-  ])
+  )
 
-  payload.logger.info(`— Seeding posts...`)
+  payload.logger.info(`— Seeding ToggleDawn study materials...`)
 
-  // Do not create posts with `Promise.all` because we want the posts to be created in order
-  // This way we can sort them by `createdAt` or `publishedAt` and they will be in the expected order
-  const post1Doc = await payload.create({
-    collection: 'posts',
-    depth: 0,
-    context: {
-      disableRevalidate: true,
-    },
-    data: post1({ heroImage: image1Doc, blockImage: image2Doc, author: demoAuthor }),
-  })
-
-  const post2Doc = await payload.create({
-    collection: 'posts',
-    depth: 0,
-    context: {
-      disableRevalidate: true,
-    },
-    data: post2({ heroImage: image2Doc, blockImage: image3Doc, author: demoAuthor }),
-  })
-
-  const post3Doc = await payload.create({
-    collection: 'posts',
-    depth: 0,
-    context: {
-      disableRevalidate: true,
-    },
-    data: post3({ heroImage: image3Doc, blockImage: image1Doc, author: demoAuthor }),
-  })
-
-  // update each post with related posts
-  await payload.update({
-    id: post1Doc.id,
-    collection: 'posts',
+  const projectDoc = await payload.create({
+    collection: 'projects',
     data: {
-      relatedPosts: [post2Doc.id, post3Doc.id],
-    },
-  })
-  await payload.update({
-    id: post2Doc.id,
-    collection: 'posts',
-    data: {
-      relatedPosts: [post1Doc.id, post3Doc.id],
-    },
-  })
-  await payload.update({
-    id: post3Doc.id,
-    collection: 'posts',
-    data: {
-      relatedPosts: [post1Doc.id, post2Doc.id],
+      title: 'Target Exam 2026',
+      description: 'Unified study plan and habit tracking for upcoming engineering competitive tests.',
+      status: 'active',
     },
   })
 
-  payload.logger.info(`— Seeding contact form...`)
+  const missionDoc = await payload.create({
+    collection: 'missions',
+    draft: false,
+    data: {
+      title: 'Physics & Mechanics Mastery',
+      type: 'study',
+      status: 'active',
+      targetHours: 120,
+      project: projectDoc.id,
+    },
+  })
 
-  const contactForm = await payload.create({
-    collection: 'forms',
-    depth: 0,
-    data: contactFormData,
+  const bookDoc = await payload.create({
+    collection: 'books',
+    draft: false,
+    data: {
+      title: 'Concepts of Physics - Volume 1',
+      author: 'H. C. Verma',
+      subject: 'Physics',
+      totalPages: 462,
+      slug: 'concepts-of-physics-vol-1',
+      mission: missionDoc.id,
+      _status: 'published',
+    },
+  })
+
+  const chapterDoc = await payload.create({
+    collection: 'chapters',
+    draft: false,
+    data: {
+      title: 'Rotational Dynamics and Kinematics',
+      pageCount: 38,
+      progressStatus: 'in-progress',
+      slug: 'rotational-dynamics',
+      book: bookDoc.id,
+      _status: 'published',
+    },
+  })
+
+  await payload.create({
+    collection: 'notes',
+    draft: false,
+    data: {
+      title: 'Moment of Inertia Formulas & Parallel Axis Theorem',
+      slug: 'moment-of-inertia-formulas',
+      chapter: chapterDoc.id,
+      _status: 'published',
+      content: {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              children: [
+                {
+                  type: 'text',
+                  text: 'Moment of inertia formulas and theorems for competitive exams.',
+                  version: 1,
+                  detail: 0,
+                  format: 0,
+                  mode: 'normal',
+                  style: '',
+                },
+              ],
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+            },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      },
+    },
+  })
+
+  await payload.create({
+    collection: 'test-scores',
+    data: {
+      examName: 'Physics Exam #1',
+      subject: 'Physics',
+      scoreObtained: 85,
+      totalScore: 100,
+      examDate: new Date().toISOString(),
+      mission: missionDoc.id,
+    },
   })
 
   payload.logger.info(`— Seeding pages...`)
@@ -205,13 +247,21 @@ export const seed = async ({
   const [_, contactPage] = await Promise.all([
     payload.create({
       collection: 'pages',
-      depth: 0,
-      data: home({ heroImage: imageHomeDoc, metaImage: image2Doc }),
+      draft: false,
+      data: {
+        title: 'Home',
+        slug: 'home',
+        _status: 'published',
+        hero: {
+          type: 'none',
+        },
+        layout: [],
+      },
     }),
     payload.create({
       collection: 'pages',
-      depth: 0,
-      data: contactPageData({ contactForm: contactForm }),
+      draft: false,
+      data: contactPageData(),
     }),
   ])
 
@@ -225,8 +275,8 @@ export const seed = async ({
           {
             link: {
               type: 'custom',
-              label: 'Posts',
-              url: '/posts',
+              label: 'Study',
+              url: '/books',
             },
           },
           {

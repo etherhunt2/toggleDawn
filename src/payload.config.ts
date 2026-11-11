@@ -6,11 +6,20 @@ import { fileURLToPath } from 'url'
 
 import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
-import { Pages } from './collections/Pages'
-import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
-import { Footer } from './Footer/config'
+import { Projects } from './collections/Projects'
+import { Missions } from './collections/Missions'
+import { Books } from './collections/Books'
+import { Chapters } from './collections/Chapters'
+import { Notes } from './collections/Notes'
+import { FlashCards } from './collections/FlashCards'
+import { Pages } from './collections/Pages'
+import { TimeLogs } from './collections/TimeLogs'
+import { TestScores } from './collections/TestScores'
+import { Habits } from './collections/Habits'
+import { Schedules } from './collections/Schedules'
 import { Header } from './Header/config'
+import { Footer } from './Footer/config'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
@@ -21,11 +30,6 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     components: {
-      // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below.
-      beforeLogin: ['@/components/BeforeLogin'],
-      // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below.
       beforeDashboard: ['@/components/BeforeDashboard'],
     },
     importMap: {
@@ -54,6 +58,9 @@ export default buildConfig({
         },
       ],
     },
+    meta: {
+      titleSuffix: ' | ToggleDawn',
+    },
   },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
@@ -61,8 +68,29 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
+    push: false,
   }),
-  collections: [Pages, Posts, Media, Categories, Users],
+  collections: [
+    // Core
+    Projects,
+    Missions,
+    // Study (SEO-enabled silo)
+    Books,
+    Chapters,
+    Notes,
+    FlashCards,
+    // Tracking
+    TimeLogs,
+    TestScores,
+    Habits,
+    Schedules,
+    // Pages Builder
+    Pages,
+    // System
+    Categories,
+    Media,
+    Users,
+  ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   plugins,

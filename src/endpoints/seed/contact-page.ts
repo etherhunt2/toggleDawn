@@ -1,56 +1,30 @@
-import type { Form } from '@/payload-types'
 import { RequiredDataFromCollectionSlug } from 'payload'
 
-type ContactArgs = {
-  contactForm: Form
-}
-
-export const contact: (args: ContactArgs) => RequiredDataFromCollectionSlug<'pages'> = ({
-  contactForm,
-}) => {
+export const contact = (): RequiredDataFromCollectionSlug<'pages'> => {
   return {
     slug: 'contact',
     _status: 'published',
+    title: 'Contact ToggleDawn',
     hero: {
-      type: 'none',
+      type: 'lowImpact',
     },
     layout: [
       {
-        blockType: 'formBlock',
-        enableIntro: true,
-        form: contactForm,
-        introContent: {
-          root: {
-            type: 'root',
-            children: [
-              {
-                type: 'heading',
-                children: [
-                  {
-                    type: 'text',
-                    detail: 0,
-                    format: 0,
-                    mode: 'normal',
-                    style: '',
-                    text: 'Example contact form:',
-                    version: 1,
-                  },
-                ],
-                direction: 'ltr',
-                format: '',
-                indent: 0,
-                tag: 'h3',
-                version: 1,
-              },
-            ],
-            direction: 'ltr',
-            format: '',
-            indent: 0,
-            version: 1,
+        blockType: 'faqBlock',
+        heading: 'Contact & Support',
+        description: 'Have questions about ToggleDawn or need help setting up your study space?',
+        items: [
+          {
+            question: 'How does ToggleDawn help with ADHD focus?',
+            answer:
+              'ToggleDawn reduces executive dysfunction by keeping study materials, focus time tracking, and habit streaks in one unified low-friction interface with built-in forgiveness buffers.',
           },
-        },
+          {
+            question: 'How do I reach the team?',
+            answer: 'You can email us directly at support@toggledawn.com.',
+          },
+        ],
       },
     ],
-    title: 'Contact',
   }
 }

@@ -67,14 +67,21 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    projects: Project;
+    missions: Mission;
+    books: Book;
+    chapters: Chapter;
+    notes: Note;
+    'flash-cards': FlashCard;
+    'time-logs': TimeLog;
+    'test-scores': TestScore;
+    habits: Habit;
+    schedules: Schedule;
     pages: Page;
-    posts: Post;
-    media: Media;
     categories: Category;
+    media: Media;
     users: User;
     redirects: Redirect;
-    forms: Form;
-    'form-submissions': FormSubmission;
     search: Search;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -84,19 +91,38 @@ export interface Config {
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
+    projects: {
+      missions: 'missions';
+    };
+    missions: {
+      books: 'books';
+    };
+    books: {
+      chapters: 'chapters';
+    };
+    chapters: {
+      notes: 'notes';
+    };
     'payload-folders': {
       documentsAndFolders: 'payload-folders' | 'media';
     };
   };
   collectionsSelect: {
+    projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    missions: MissionsSelect<false> | MissionsSelect<true>;
+    books: BooksSelect<false> | BooksSelect<true>;
+    chapters: ChaptersSelect<false> | ChaptersSelect<true>;
+    notes: NotesSelect<false> | NotesSelect<true>;
+    'flash-cards': FlashCardsSelect<false> | FlashCardsSelect<true>;
+    'time-logs': TimeLogsSelect<false> | TimeLogsSelect<true>;
+    'test-scores': TestScoresSelect<false> | TestScoresSelect<true>;
+    habits: HabitsSelect<false> | HabitsSelect<true>;
+    schedules: SchedulesSelect<false> | SchedulesSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
-    posts: PostsSelect<false> | PostsSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
-    forms: FormsSelect<false> | FormsSelect<true>;
-    'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -106,7 +132,7 @@ export interface Config {
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
   globals: {
@@ -152,65 +178,50 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Top-level containers for organizing missions and goals.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "pages".
+ * via the `definition` "projects".
  */
-export interface Page {
-  id: string;
+export interface Project {
+  id: number;
   title: string;
-  hero: {
-    type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
-    richText?: {
-      root: {
-        type: string;
-        children: {
-          type: any;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    } | null;
-    links?:
-      | {
-          link: {
-            type?: ('reference' | 'custom') | null;
-            newTab?: boolean | null;
-            reference?:
-              | ({
-                  relationTo: 'pages';
-                  value: string | Page;
-                } | null)
-              | ({
-                  relationTo: 'posts';
-                  value: string | Post;
-                } | null);
-            url?: string | null;
-            label: string;
-            /**
-             * Choose how the link should be rendered.
-             */
-            appearance?: ('default' | 'outline') | null;
-          };
-          id?: string | null;
-        }[]
-      | null;
-    media?: (string | null) | Media;
+  description?: string | null;
+  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'archived';
+  deadline?: string | null;
+  categories?: (number | Category)[] | null;
+  /**
+   * Hex color for visual tagging in the dashboard (e.g. #6C5CE7).
+   */
+  color?: string | null;
+  missions?: {
+    docs?: (number | Mission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
-  layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
-  meta?: {
-    title?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (string | null) | Media;
-    description?: string | null;
-  };
-  publishedAt?: string | null;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  title: string;
+  /**
+   * What kind of content this category applies to.
+   */
+  type: 'project' | 'mission' | 'exam' | 'book' | 'chapter' | 'note' | 'general';
+  /**
+   * Optional description for this category.
+   */
+  description?: string | null;
+  /**
+   * Hex color code for visual identification (e.g. #6C5CE7).
+   */
+  color?: string | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -218,49 +229,77 @@ export interface Page {
   slug: string;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
+ * Focused goals within a project — Study, Habit, or Hobby.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "posts".
+ * via the `definition` "missions".
  */
-export interface Post {
-  id: string;
+export interface Mission {
+  id: number;
   title: string;
-  heroImage?: (string | null) | Media;
-  content: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
+  type: 'study' | 'habit' | 'hobby';
+  description?: string | null;
+  /**
+   * Target hours to dedicate to this mission.
+   */
+  targetHours?: number | null;
+  status: 'active' | 'paused' | 'completed';
+  project: number | Project;
+  categories?: (number | Category)[] | null;
+  books?: {
+    docs?: (number | Book)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
-  relatedPosts?: (string | Post)[] | null;
-  categories?: (string | Category)[] | null;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Books and study materials organized by subject.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "books".
+ */
+export interface Book {
+  id: number;
+  title: string;
+  /**
+   * Author of the book.
+   */
+  author?: string | null;
+  /**
+   * Subject area (e.g. Mathematics, Physics, History).
+   */
+  subject: string;
+  /**
+   * Total number of pages in the book.
+   */
+  totalPages?: number | null;
+  /**
+   * Brief summary of the book content.
+   */
+  description?: string | null;
+  coverImage?: (number | null) | Media;
+  mission: number | Mission;
+  categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (string | null) | Media;
     description?: string | null;
   };
-  publishedAt?: string | null;
-  authors?: (string | User)[] | null;
-  populatedAuthors?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
+  /**
+   * Auto-calculated from chapter completion.
+   */
+  completionPercent?: number | null;
+  progressStatus?: ('not-started' | 'in-progress' | 'completed') | null;
+  chapters?: {
+    docs?: (number | Chapter)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  owner?: (number | null) | User;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -275,7 +314,7 @@ export interface Post {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt?: string | null;
   caption?: {
     root: {
@@ -292,7 +331,7 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
-  folder?: (string | null) | FolderInterface;
+  folder?: (number | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -368,18 +407,18 @@ export interface Media {
  * via the `definition` "payload-folders".
  */
 export interface FolderInterface {
-  id: string;
+  id: number;
   name: string;
-  folder?: (string | null) | FolderInterface;
+  folder?: (number | null) | FolderInterface;
   documentsAndFolders?: {
     docs?: (
       | {
           relationTo?: 'payload-folders';
-          value: string | FolderInterface;
+          value: number | FolderInterface;
         }
       | {
           relationTo?: 'media';
-          value: string | Media;
+          value: number | Media;
         }
     )[];
     hasNextPage?: boolean;
@@ -390,36 +429,135 @@ export interface FolderInterface {
   createdAt: string;
 }
 /**
+ * Chapter divisions within a book.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories".
+ * via the `definition` "chapters".
  */
-export interface Category {
-  id: string;
+export interface Chapter {
+  id: number;
   title: string;
+  /**
+   * Brief summary of chapter contents.
+   */
+  description?: string | null;
+  /**
+   * Number of pages in this chapter.
+   */
+  pageCount?: number | null;
+  /**
+   * Order of this chapter within the book. Lower numbers come first.
+   */
+  sortOrder?: number | null;
+  book: number | Book;
+  categories?: (number | Category)[] | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  progressStatus?: ('not-started' | 'in-progress' | 'completed') | null;
+  /**
+   * Auto-calculated from note completion.
+   */
+  completionPercent?: number | null;
+  notes?: {
+    docs?: (number | Note)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  owner?: (number | null) | User;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
   slug: string;
-  parent?: (string | null) | Category;
-  breadcrumbs?:
-    | {
-        doc?: (string | null) | Category;
-        url?: string | null;
-        label?: string | null;
-        id?: string | null;
-      }[]
-    | null;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Study notes, flashcards, and summaries within a chapter.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notes".
+ */
+export interface Note {
+  id: number;
+  title: string;
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Type of study note for micro-chunking.
+   */
+  noteType?: ('note' | 'flashcard' | 'summary' | 'formula') | null;
+  /**
+   * Order of this note within the chapter.
+   */
+  sortOrder?: number | null;
+  chapter?: (number | null) | Chapter;
+  categories?: (number | Category)[] | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  /**
+   * Mark as completed when you have reviewed this note.
+   */
+  isCompleted?: boolean | null;
+  owner?: (number | null) | User;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
   name?: string | null;
+  /**
+   * Only administrators can modify roles or grant access to the /admin dashboard.
+   */
+  role: 'admin' | 'user';
+  /**
+   * User preferences for the ToggleDawn experience.
+   */
+  preferences?: {
+    theme?: ('light' | 'dark' | 'system') | null;
+    defaultProjectView?: ('grid' | 'list') | null;
+    /**
+     * IANA timezone string (e.g. Asia/Kolkata, America/New_York).
+     */
+    timezone?: string | null;
+    /**
+     * Target productive hours per day.
+     */
+    dailyGoalHours?: number | null;
+    enableNotifications?: boolean | null;
+    /**
+     * Number of missed days before a streak resets. ADHD-friendly forgiveness buffer.
+     */
+    streakForgivenessBuffer?: number | null;
+  };
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -427,6 +565,7 @@ export interface User {
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
@@ -438,6 +577,634 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * Flash cards for quick revision — text, image, or PDF per card.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "flash-cards".
+ */
+export interface FlashCard {
+  id: number;
+  /**
+   * A short label for this flash card.
+   */
+  title: string;
+  /**
+   * Choose ONE content format for this card.
+   */
+  contentType: 'text' | 'image' | 'pdf';
+  /**
+   * Write or paste your flash card content here.
+   */
+  textContent?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Upload an image for this flash card.
+   */
+  image?: (number | null) | Media;
+  /**
+   * Upload a PDF for this flash card.
+   */
+  pdf?: (number | null) | Media;
+  /**
+   * Every flash card must belong to a book.
+   */
+  book: number | Book;
+  /**
+   * Optionally assign to a specific chapter within the book.
+   */
+  chapter?: (number | null) | Chapter;
+  /**
+   * Order for serial display (lower = first).
+   */
+  sortOrder?: number | null;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Hourly time blocks — tap to log, fill retroactively.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "time-logs".
+ */
+export interface TimeLog {
+  id: number;
+  /**
+   * When this time block started.
+   */
+  startTime: string;
+  /**
+   * When this time block ended.
+   */
+  endTime: string;
+  /**
+   * Auto-calculated duration in minutes.
+   */
+  duration?: number | null;
+  category: 'study' | 'work' | 'exercise' | 'hobby' | 'rest' | 'social' | 'chores' | 'commute' | 'sleep' | 'other';
+  /**
+   * Optional note about what you did during this block.
+   */
+  description?: string | null;
+  /**
+   * Optionally link this time block to a specific mission.
+   */
+  mission?: (number | null) | Mission;
+  /**
+   * Was this entry filled in after the fact?
+   */
+  isRetroactive?: boolean | null;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Record exam results for trend analysis and weakness mapping.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "test-scores".
+ */
+export interface TestScore {
+  id: number;
+  /**
+   * Name of the exam or test.
+   */
+  examName: string;
+  /**
+   * Subject area tested.
+   */
+  subject: string;
+  /**
+   * Marks/score obtained.
+   */
+  scoreObtained: number;
+  /**
+   * Maximum possible marks/score.
+   */
+  totalScore: number;
+  /**
+   * Auto-calculated percentage.
+   */
+  percentage?: number | null;
+  examDate: string;
+  examType?: ('quiz' | 'test' | 'midterm' | 'final' | 'mock' | 'practice') | null;
+  /**
+   * Reflections, mistakes to review, weak areas.
+   */
+  notes?: string | null;
+  /**
+   * Link to the study mission this exam belongs to.
+   */
+  mission?: (number | null) | Mission;
+  categories?: (number | Category)[] | null;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Track daily habits, streaks, and completion rates.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "habits".
+ */
+export interface Habit {
+  id: number;
+  /**
+   * Name of the habit to track (e.g. Morning Workout, Read 20 pages).
+   */
+  title: string;
+  /**
+   * Why this habit matters or execution details.
+   */
+  description?: string | null;
+  frequency: 'daily' | 'weekly' | 'custom';
+  /**
+   * Current active streak in days.
+   */
+  streak?: number | null;
+  /**
+   * Longest streak achieved.
+   */
+  bestStreak?: number | null;
+  /**
+   * List of ISO date strings (YYYY-MM-DD) when this habit was completed.
+   */
+  completedDates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Hex color for the HUD badge (e.g. #00ff9d, #6C5CE7).
+   */
+  color?: string | null;
+  /**
+   * Whether this habit is actively tracked.
+   */
+  isActive?: boolean | null;
+  /**
+   * Optionally link to a mission.
+   */
+  mission?: (number | null) | Mission;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Time-blocked daily schedule and planner events.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schedules".
+ */
+export interface Schedule {
+  id: number;
+  /**
+   * Title of the event or scheduled block.
+   */
+  title: string;
+  /**
+   * Details or checklist for this block.
+   */
+  description?: string | null;
+  date: string;
+  /**
+   * Start time in 24h format (e.g. 09:00).
+   */
+  startTime: string;
+  /**
+   * End time in 24h format (e.g. 10:30).
+   */
+  endTime: string;
+  category: 'study' | 'work' | 'exercise' | 'social' | 'rest' | 'other';
+  /**
+   * Does this block repeat weekly?
+   */
+  isRecurring?: boolean | null;
+  /**
+   * Array of day numbers (0=Sun, 1=Mon, ..., 6=Sat) if recurring.
+   */
+  recurringDays?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Hex color for the calendar block.
+   */
+  color?: string | null;
+  /**
+   * Mark completed once done.
+   */
+  isCompleted?: boolean | null;
+  /**
+   * Optionally link to a mission.
+   */
+  mission?: (number | null) | Mission;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  hero: {
+    type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    richText?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    links?:
+      | {
+          link: {
+            type?: ('reference' | 'custom') | null;
+            newTab?: boolean | null;
+            reference?:
+              | ({
+                  relationTo: 'pages';
+                  value: number | Page;
+                } | null)
+              | ({
+                  relationTo: 'books';
+                  value: number | Book;
+                } | null)
+              | ({
+                  relationTo: 'chapters';
+                  value: number | Chapter;
+                } | null)
+              | ({
+                  relationTo: 'notes';
+                  value: number | Note;
+                } | null);
+            url?: string | null;
+            label: string;
+            /**
+             * Choose how the link should be rendered.
+             */
+            appearance?: ('default' | 'outline') | null;
+          };
+          id?: string | null;
+        }[]
+      | null;
+    media?: (number | null) | Media;
+  };
+  layout?:
+    | (
+        | HeroBlockType
+        | RichContentBlockType
+        | FeatureGridBlockType
+        | CallToActionSectionBlockType
+        | FAQBlockType
+        | TestimonialBlockType
+        | StatsBlockType
+        | CardGridBlockType
+        | SpacerBlockType
+        | BannerBlock
+        | CodeBlock
+        | MediaBlock
+        | CallToActionBlock
+        | ContentBlock
+      )[]
+    | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  publishedAt?: string | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroBlockType".
+ */
+export interface HeroBlockType {
+  badge?: string | null;
+  heading: string;
+  subheading?: string | null;
+  alignment?: ('center' | 'left') | null;
+  media?: (number | null) | Media;
+  links?:
+    | {
+        link: {
+          type?: ('reference' | 'custom') | null;
+          newTab?: boolean | null;
+          reference?:
+            | ({
+                relationTo: 'pages';
+                value: number | Page;
+              } | null)
+            | ({
+                relationTo: 'books';
+                value: number | Book;
+              } | null)
+            | ({
+                relationTo: 'chapters';
+                value: number | Chapter;
+              } | null)
+            | ({
+                relationTo: 'notes';
+                value: number | Note;
+              } | null);
+          url?: string | null;
+          label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
+          appearance?: ('default' | 'outline') | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichContentBlockType".
+ */
+export interface RichContentBlockType {
+  richText: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  layout?: ('standard' | 'mediaRight' | 'mediaLeft') | null;
+  media?: (number | null) | Media;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'richContent';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeatureGridBlockType".
+ */
+export interface FeatureGridBlockType {
+  badge?: string | null;
+  heading: string;
+  description?: string | null;
+  columns?: ('2' | '3' | '4') | null;
+  features: {
+    icon?: ('zap' | 'target' | 'clock' | 'book' | 'brain' | 'check' | 'barChart' | 'sparkles') | null;
+    title: string;
+    description: string;
+    tag?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'featureGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CallToActionSectionBlockType".
+ */
+export interface CallToActionSectionBlockType {
+  badge?: string | null;
+  heading: string;
+  description?: string | null;
+  style?: ('glow' | 'minimal' | 'dark') | null;
+  links?:
+    | {
+        link: {
+          type?: ('reference' | 'custom') | null;
+          newTab?: boolean | null;
+          reference?:
+            | ({
+                relationTo: 'pages';
+                value: number | Page;
+              } | null)
+            | ({
+                relationTo: 'books';
+                value: number | Book;
+              } | null)
+            | ({
+                relationTo: 'chapters';
+                value: number | Chapter;
+              } | null)
+            | ({
+                relationTo: 'notes';
+                value: number | Note;
+              } | null);
+          url?: string | null;
+          label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
+          appearance?: ('default' | 'outline') | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'ctaBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FAQBlockType".
+ */
+export interface FAQBlockType {
+  badge?: string | null;
+  heading: string;
+  description?: string | null;
+  items: {
+    question: string;
+    answer: string;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'faqBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TestimonialBlockType".
+ */
+export interface TestimonialBlockType {
+  badge?: string | null;
+  heading: string;
+  description?: string | null;
+  testimonials: {
+    quote: string;
+    authorName: string;
+    authorRole?: string | null;
+    avatar?: (number | null) | Media;
+    rating?: number | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'testimonialBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StatsBlockType".
+ */
+export interface StatsBlockType {
+  badge?: string | null;
+  heading?: string | null;
+  stats: {
+    value: string;
+    label: string;
+    description?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'statsBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CardGridBlockType".
+ */
+export interface CardGridBlockType {
+  badge?: string | null;
+  heading: string;
+  description?: string | null;
+  cards: {
+    title: string;
+    description: string;
+    badge?: string | null;
+    media?: (number | null) | Media;
+    link?: {
+      type?: ('reference' | 'custom') | null;
+      newTab?: boolean | null;
+      reference?:
+        | ({
+            relationTo: 'pages';
+            value: number | Page;
+          } | null)
+        | ({
+            relationTo: 'books';
+            value: number | Book;
+          } | null)
+        | ({
+            relationTo: 'chapters';
+            value: number | Chapter;
+          } | null)
+        | ({
+            relationTo: 'notes';
+            value: number | Note;
+          } | null);
+      url?: string | null;
+    };
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'cardGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SpacerBlockType".
+ */
+export interface SpacerBlockType {
+  size?: ('small' | 'medium' | 'large' | 'xlarge') | null;
+  showDivider?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'spacerBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "BannerBlock".
+ */
+export interface BannerBlock {
+  style: 'info' | 'warning' | 'error' | 'success';
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'banner';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CodeBlock".
+ */
+export interface CodeBlock {
+  language?: ('typescript' | 'javascript' | 'css') | null;
+  code: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'code';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock".
+ */
+export interface MediaBlock {
+  media: number | Media;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -467,11 +1234,19 @@ export interface CallToActionBlock {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
-                relationTo: 'posts';
-                value: string | Post;
+                relationTo: 'books';
+                value: number | Book;
+              } | null)
+            | ({
+                relationTo: 'chapters';
+                value: number | Chapter;
+              } | null)
+            | ({
+                relationTo: 'notes';
+                value: number | Note;
               } | null);
           url?: string | null;
           label: string;
@@ -517,11 +1292,19 @@ export interface ContentBlock {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
-                relationTo: 'posts';
-                value: string | Post;
+                relationTo: 'books';
+                value: number | Book;
+              } | null)
+            | ({
+                relationTo: 'chapters';
+                value: number | Chapter;
+              } | null)
+            | ({
+                relationTo: 'notes';
+                value: number | Note;
               } | null);
           url?: string | null;
           label: string;
@@ -539,254 +1322,10 @@ export interface ContentBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MediaBlock".
- */
-export interface MediaBlock {
-  media: string | Media;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'mediaBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ArchiveBlock".
- */
-export interface ArchiveBlock {
-  introContent?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  populateBy?: ('collection' | 'selection') | null;
-  relationTo?: 'posts' | null;
-  categories?: (string | Category)[] | null;
-  limit?: number | null;
-  selectedDocs?:
-    | {
-        relationTo: 'posts';
-        value: string | Post;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'archive';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock".
- */
-export interface FormBlock {
-  form: string | Form;
-  enableIntro?: boolean | null;
-  introContent?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'formBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "forms".
- */
-export interface Form {
-  id: string;
-  title: string;
-  fields?:
-    | (
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            defaultValue?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'checkbox';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'country';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'email';
-          }
-        | {
-            message?: {
-              root: {
-                type: string;
-                children: {
-                  type: any;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            } | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'message';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'number';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: string | null;
-            placeholder?: string | null;
-            options?:
-              | {
-                  label: string;
-                  value: string;
-                  id?: string | null;
-                }[]
-              | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'select';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'state';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: string | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'text';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: string | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'textarea';
-          }
-      )[]
-    | null;
-  submitButtonLabel?: string | null;
-  /**
-   * Choose whether to display an on-page message or redirect to a different page after they submit the form.
-   */
-  confirmationType?: ('message' | 'redirect') | null;
-  confirmationMessage?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  redirect?: {
-    url: string;
-  };
-  /**
-   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
-   */
-  emails?:
-    | {
-        emailTo?: string | null;
-        cc?: string | null;
-        bcc?: string | null;
-        replyTo?: string | null;
-        emailFrom?: string | null;
-        subject: string;
-        /**
-         * Enter the message that should be sent in this email.
-         */
-        message?: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
-              [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        } | null;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
-  id: string;
+  id: number;
   /**
    * You will need to rebuild the website when changing this field.
    */
@@ -796,31 +1335,22 @@ export interface Redirect {
     reference?:
       | ({
           relationTo: 'pages';
-          value: string | Page;
+          value: number | Page;
         } | null)
       | ({
-          relationTo: 'posts';
-          value: string | Post;
+          relationTo: 'books';
+          value: number | Book;
+        } | null)
+      | ({
+          relationTo: 'chapters';
+          value: number | Chapter;
+        } | null)
+      | ({
+          relationTo: 'notes';
+          value: number | Note;
         } | null);
     url?: string | null;
   };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form-submissions".
- */
-export interface FormSubmission {
-  id: string;
-  form: string | Form;
-  submissionData?:
-    | {
-        field: string;
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -831,18 +1361,31 @@ export interface FormSubmission {
  * via the `definition` "search".
  */
 export interface Search {
-  id: string;
+  id: number;
   title?: string | null;
   priority?: number | null;
-  doc: {
-    relationTo: 'posts';
-    value: string | Post;
-  };
+  doc:
+    | {
+        relationTo: 'pages';
+        value: number | Page;
+      }
+    | {
+        relationTo: 'books';
+        value: number | Book;
+      }
+    | {
+        relationTo: 'chapters';
+        value: number | Chapter;
+      }
+    | {
+        relationTo: 'notes';
+        value: number | Note;
+      };
   slug?: string | null;
   meta?: {
     title?: string | null;
     description?: string | null;
-    image?: (string | null) | Media;
+    image?: (number | null) | Media;
   };
   categories?:
     | {
@@ -860,7 +1403,7 @@ export interface Search {
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -877,7 +1420,7 @@ export interface PayloadKv {
  * via the `definition` "payload-jobs".
  */
 export interface PayloadJob {
-  id: string;
+  id: number;
   /**
    * Input data provided to the job
    */
@@ -969,52 +1512,80 @@ export interface PayloadJob {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
+        relationTo: 'projects';
+        value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'missions';
+        value: number | Mission;
+      } | null)
+    | ({
+        relationTo: 'books';
+        value: number | Book;
+      } | null)
+    | ({
+        relationTo: 'chapters';
+        value: number | Chapter;
+      } | null)
+    | ({
+        relationTo: 'notes';
+        value: number | Note;
+      } | null)
+    | ({
+        relationTo: 'flash-cards';
+        value: number | FlashCard;
+      } | null)
+    | ({
+        relationTo: 'time-logs';
+        value: number | TimeLog;
+      } | null)
+    | ({
+        relationTo: 'test-scores';
+        value: number | TestScore;
+      } | null)
+    | ({
+        relationTo: 'habits';
+        value: number | Habit;
+      } | null)
+    | ({
+        relationTo: 'schedules';
+        value: number | Schedule;
+      } | null)
+    | ({
         relationTo: 'pages';
-        value: string | Page;
-      } | null)
-    | ({
-        relationTo: 'posts';
-        value: string | Post;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: string | Media;
+        value: number | Page;
       } | null)
     | ({
         relationTo: 'categories';
-        value: string | Category;
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: number | Media;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'redirects';
-        value: string | Redirect;
-      } | null)
-    | ({
-        relationTo: 'forms';
-        value: string | Form;
-      } | null)
-    | ({
-        relationTo: 'form-submissions';
-        value: string | FormSubmission;
+        value: number | Redirect;
       } | null)
     | ({
         relationTo: 'search';
-        value: string | Search;
+        value: number | Search;
       } | null)
     | ({
         relationTo: 'payload-folders';
-        value: string | FolderInterface;
+        value: number | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -1024,10 +1595,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -1047,11 +1618,215 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  status?: T;
+  deadline?: T;
+  categories?: T;
+  color?: T;
+  missions?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "missions_select".
+ */
+export interface MissionsSelect<T extends boolean = true> {
+  title?: T;
+  type?: T;
+  description?: T;
+  targetHours?: T;
+  status?: T;
+  project?: T;
+  categories?: T;
+  books?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "books_select".
+ */
+export interface BooksSelect<T extends boolean = true> {
+  title?: T;
+  author?: T;
+  subject?: T;
+  totalPages?: T;
+  description?: T;
+  coverImage?: T;
+  mission?: T;
+  categories?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  completionPercent?: T;
+  progressStatus?: T;
+  chapters?: T;
+  owner?: T;
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chapters_select".
+ */
+export interface ChaptersSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  pageCount?: T;
+  sortOrder?: T;
+  book?: T;
+  categories?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  progressStatus?: T;
+  completionPercent?: T;
+  notes?: T;
+  owner?: T;
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notes_select".
+ */
+export interface NotesSelect<T extends boolean = true> {
+  title?: T;
+  content?: T;
+  noteType?: T;
+  sortOrder?: T;
+  chapter?: T;
+  categories?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  isCompleted?: T;
+  owner?: T;
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "flash-cards_select".
+ */
+export interface FlashCardsSelect<T extends boolean = true> {
+  title?: T;
+  contentType?: T;
+  textContent?: T;
+  image?: T;
+  pdf?: T;
+  book?: T;
+  chapter?: T;
+  sortOrder?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "time-logs_select".
+ */
+export interface TimeLogsSelect<T extends boolean = true> {
+  startTime?: T;
+  endTime?: T;
+  duration?: T;
+  category?: T;
+  description?: T;
+  mission?: T;
+  isRetroactive?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "test-scores_select".
+ */
+export interface TestScoresSelect<T extends boolean = true> {
+  examName?: T;
+  subject?: T;
+  scoreObtained?: T;
+  totalScore?: T;
+  percentage?: T;
+  examDate?: T;
+  examType?: T;
+  notes?: T;
+  mission?: T;
+  categories?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "habits_select".
+ */
+export interface HabitsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  frequency?: T;
+  streak?: T;
+  bestStreak?: T;
+  completedDates?: T;
+  color?: T;
+  isActive?: T;
+  mission?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schedules_select".
+ */
+export interface SchedulesSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  date?: T;
+  startTime?: T;
+  endTime?: T;
+  category?: T;
+  isRecurring?: T;
+  recurringDays?: T;
+  color?: T;
+  isCompleted?: T;
+  mission?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1084,17 +1859,25 @@ export interface PagesSelect<T extends boolean = true> {
   layout?:
     | T
     | {
+        heroBlock?: T | HeroBlockTypeSelect<T>;
+        richContent?: T | RichContentBlockTypeSelect<T>;
+        featureGrid?: T | FeatureGridBlockTypeSelect<T>;
+        ctaBlock?: T | CallToActionSectionBlockTypeSelect<T>;
+        faqBlock?: T | FAQBlockTypeSelect<T>;
+        testimonialBlock?: T | TestimonialBlockTypeSelect<T>;
+        statsBlock?: T | StatsBlockTypeSelect<T>;
+        cardGrid?: T | CardGridBlockTypeSelect<T>;
+        spacerBlock?: T | SpacerBlockTypeSelect<T>;
+        banner?: T | BannerBlockSelect<T>;
+        code?: T | CodeBlockSelect<T>;
+        mediaBlock?: T | MediaBlockSelect<T>;
         cta?: T | CallToActionBlockSelect<T>;
         content?: T | ContentBlockSelect<T>;
-        mediaBlock?: T | MediaBlockSelect<T>;
-        archive?: T | ArchiveBlockSelect<T>;
-        formBlock?: T | FormBlockSelect<T>;
       };
   meta?:
     | T
     | {
         title?: T;
-        image?: T;
         description?: T;
       };
   publishedAt?: T;
@@ -1103,6 +1886,217 @@ export interface PagesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroBlockType_select".
+ */
+export interface HeroBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  subheading?: T;
+  alignment?: T;
+  media?: T;
+  links?:
+    | T
+    | {
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichContentBlockType_select".
+ */
+export interface RichContentBlockTypeSelect<T extends boolean = true> {
+  richText?: T;
+  layout?: T;
+  media?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeatureGridBlockType_select".
+ */
+export interface FeatureGridBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  description?: T;
+  columns?: T;
+  features?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        description?: T;
+        tag?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CallToActionSectionBlockType_select".
+ */
+export interface CallToActionSectionBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  description?: T;
+  style?: T;
+  links?:
+    | T
+    | {
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FAQBlockType_select".
+ */
+export interface FAQBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  description?: T;
+  items?:
+    | T
+    | {
+        question?: T;
+        answer?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TestimonialBlockType_select".
+ */
+export interface TestimonialBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  description?: T;
+  testimonials?:
+    | T
+    | {
+        quote?: T;
+        authorName?: T;
+        authorRole?: T;
+        avatar?: T;
+        rating?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StatsBlockType_select".
+ */
+export interface StatsBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  stats?:
+    | T
+    | {
+        value?: T;
+        label?: T;
+        description?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CardGridBlockType_select".
+ */
+export interface CardGridBlockTypeSelect<T extends boolean = true> {
+  badge?: T;
+  heading?: T;
+  description?: T;
+  cards?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        badge?: T;
+        media?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SpacerBlockType_select".
+ */
+export interface SpacerBlockTypeSelect<T extends boolean = true> {
+  size?: T;
+  showDivider?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "BannerBlock_select".
+ */
+export interface BannerBlockSelect<T extends boolean = true> {
+  style?: T;
+  content?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CodeBlock_select".
+ */
+export interface CodeBlockSelect<T extends boolean = true> {
+  language?: T;
+  code?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock_select".
+ */
+export interface MediaBlockSelect<T extends boolean = true> {
+  media?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1156,68 +2150,17 @@ export interface ContentBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MediaBlock_select".
+ * via the `definition` "categories_select".
  */
-export interface MediaBlockSelect<T extends boolean = true> {
-  media?: T;
-  id?: T;
-  blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ArchiveBlock_select".
- */
-export interface ArchiveBlockSelect<T extends boolean = true> {
-  introContent?: T;
-  populateBy?: T;
-  relationTo?: T;
-  categories?: T;
-  limit?: T;
-  selectedDocs?: T;
-  id?: T;
-  blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock_select".
- */
-export interface FormBlockSelect<T extends boolean = true> {
-  form?: T;
-  enableIntro?: T;
-  introContent?: T;
-  id?: T;
-  blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "posts_select".
- */
-export interface PostsSelect<T extends boolean = true> {
+export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
-  heroImage?: T;
-  content?: T;
-  relatedPosts?: T;
-  categories?: T;
-  meta?:
-    | T
-    | {
-        title?: T;
-        image?: T;
-        description?: T;
-      };
-  publishedAt?: T;
-  authors?: T;
-  populatedAuthors?:
-    | T
-    | {
-        id?: T;
-        name?: T;
-      };
+  type?: T;
+  description?: T;
+  color?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1315,30 +2258,21 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories_select".
- */
-export interface CategoriesSelect<T extends boolean = true> {
-  title?: T;
-  generateSlug?: T;
-  slug?: T;
-  parent?: T;
-  breadcrumbs?:
-    | T
-    | {
-        doc?: T;
-        url?: T;
-        label?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  role?: T;
+  preferences?:
+    | T
+    | {
+        theme?: T;
+        defaultProjectView?: T;
+        timezone?: T;
+        dailyGoalHours?: T;
+        enableNotifications?: T;
+        streakForgivenessBuffer?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1346,6 +2280,7 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
+  resetPasswordRequestedAt?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -1368,155 +2303,6 @@ export interface RedirectsSelect<T extends boolean = true> {
         type?: T;
         reference?: T;
         url?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "forms_select".
- */
-export interface FormsSelect<T extends boolean = true> {
-  title?: T;
-  fields?:
-    | T
-    | {
-        checkbox?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
-              defaultValue?: T;
-              id?: T;
-              blockName?: T;
-            };
-        country?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        email?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        message?:
-          | T
-          | {
-              message?: T;
-              id?: T;
-              blockName?: T;
-            };
-        number?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              defaultValue?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        select?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              defaultValue?: T;
-              placeholder?: T;
-              options?:
-                | T
-                | {
-                    label?: T;
-                    value?: T;
-                    id?: T;
-                  };
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        state?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        text?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              defaultValue?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        textarea?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              defaultValue?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-      };
-  submitButtonLabel?: T;
-  confirmationType?: T;
-  confirmationMessage?: T;
-  redirect?:
-    | T
-    | {
-        url?: T;
-      };
-  emails?:
-    | T
-    | {
-        emailTo?: T;
-        cc?: T;
-        bcc?: T;
-        replyTo?: T;
-        emailFrom?: T;
-        subject?: T;
-        message?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form-submissions_select".
- */
-export interface FormSubmissionsSelect<T extends boolean = true> {
-  form?: T;
-  submissionData?:
-    | T
-    | {
-        field?: T;
-        value?: T;
-        id?: T;
       };
   updatedAt?: T;
   createdAt?: T;
@@ -1636,7 +2422,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  * via the `definition` "header".
  */
 export interface Header {
-  id: string;
+  id: number;
   navItems?:
     | {
         link: {
@@ -1645,11 +2431,19 @@ export interface Header {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
-                relationTo: 'posts';
-                value: string | Post;
+                relationTo: 'books';
+                value: number | Book;
+              } | null)
+            | ({
+                relationTo: 'chapters';
+                value: number | Chapter;
+              } | null)
+            | ({
+                relationTo: 'notes';
+                value: number | Note;
               } | null);
           url?: string | null;
           label: string;
@@ -1665,7 +2459,7 @@ export interface Header {
  * via the `definition` "footer".
  */
 export interface Footer {
-  id: string;
+  id: number;
   navItems?:
     | {
         link: {
@@ -1674,11 +2468,19 @@ export interface Footer {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
-                relationTo: 'posts';
-                value: string | Post;
+                relationTo: 'books';
+                value: number | Book;
+              } | null)
+            | ({
+                relationTo: 'chapters';
+                value: number | Chapter;
+              } | null)
+            | ({
+                relationTo: 'notes';
+                value: number | Note;
               } | null);
           url?: string | null;
           label: string;
@@ -1755,53 +2557,28 @@ export interface TaskSchedulePublish {
     locale?: string | null;
     doc?:
       | ({
-          relationTo: 'pages';
-          value: string | Page;
+          relationTo: 'books';
+          value: number | Book;
         } | null)
       | ({
-          relationTo: 'posts';
-          value: string | Post;
+          relationTo: 'chapters';
+          value: number | Chapter;
+        } | null)
+      | ({
+          relationTo: 'notes';
+          value: number | Note;
+        } | null)
+      | ({
+          relationTo: 'pages';
+          value: number | Page;
         } | null);
     global?: string | null;
-    user?: (string | null) | User;
+    user?: {
+      relationTo: 'users';
+      value: number | User;
+    } | null;
   };
   output?: unknown;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "BannerBlock".
- */
-export interface BannerBlock {
-  style: 'info' | 'warning' | 'error' | 'success';
-  content: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'banner';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "CodeBlock".
- */
-export interface CodeBlock {
-  language?: ('typescript' | 'javascript' | 'css') | null;
-  code: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'code';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -7,6 +7,7 @@ import { useSelectedLayoutSegments } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 import './index.scss'
 
@@ -15,13 +16,17 @@ import { getClientSideURL } from '@/utilities/getURL'
 const baseClass = 'admin-bar'
 
 const collectionLabels = {
-  pages: {
-    plural: 'Pages',
-    singular: 'Page',
+  books: {
+    plural: 'Books',
+    singular: 'Book',
   },
-  posts: {
-    plural: 'Posts',
-    singular: 'Post',
+  chapters: {
+    plural: 'Chapters',
+    singular: 'Chapter',
+  },
+  notes: {
+    plural: 'Notes',
+    singular: 'Note',
   },
   projects: {
     plural: 'Projects',
@@ -37,13 +42,38 @@ export const AdminBar: React.FC<{
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
   const [show, setShow] = useState(false)
+
+  // Completely hide AdminBar on Login and Signup pages
+  const isAuthPage = segments?.[0] === 'login' || segments?.[0] === 'signup'
+  if (isAuthPage) {
+    return null
+  }
   const collection = (
-    collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'pages'
+    collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'books'
   ) as keyof typeof collectionLabels
   const router = useRouter()
 
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {
-    setShow(Boolean(user?.id))
+    // Only display Payload Admin Bar to administrators with /admin clearance
+    const u = user as (PayloadMeUser & { role?: string }) | undefined
+    setShow(Boolean(u?.id && (u.role === 'admin' || u.email?.startsWith('admin@'))))
+  }, [])
+
+  const handleLogout = React.useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      await fetch('/api/users/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch {
+      // Ignore network errors
+    }
+    useAuthStore.getState().logout()
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('toggle-dawn-auth')
+      window.location.href = '/login'
+    }
   }, [])
 
   return (
@@ -69,6 +99,12 @@ export const AdminBar: React.FC<{
             singular: collectionLabels[collection]?.singular || 'Page',
           }}
           logo={<Title />}
+          logoutProps={{
+            ...(adminBarProps?.logoutProps || {}),
+            target: '_self',
+            href: '/login',
+            onClick: handleLogout,
+          }}
           onAuthChange={onAuthChange}
           onPreviewExit={() => {
             fetch('/next/exit-preview').then(() => {
