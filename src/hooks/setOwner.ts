@@ -5,8 +5,10 @@ import type { CollectionBeforeChangeHook } from 'payload'
  * Ensures users can only create documents owned by themselves.
  */
 export const setOwner: CollectionBeforeChangeHook = ({ data, operation, req }) => {
-  if (operation === 'create' && req.user) {
-    data.owner = req.user.id
+  if (req.user) {
+    if (operation === 'create' || !data.owner) {
+      data.owner = req.user.id
+    }
   }
   return data
 }

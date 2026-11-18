@@ -33,28 +33,32 @@ export default async function HomePage() {
   let notes: any[] = []
   let testScores: any[] = []
   let timeLogs: any[] = []
+  let habits: any[] = []
+  let chapters: any[] = []
 
   try {
-    const [projectsRes, missionsRes, booksRes, notesRes, testScoresRes, timeLogsRes] =
+    const [projectsRes, missionsRes, booksRes, notesRes, testScoresRes, timeLogsRes, habitsRes, chaptersRes] =
       await Promise.all([
         payload.find({
           collection: 'projects',
-          limit: 10,
+          limit: 50,
+          sort: '-updatedAt',
+          depth: 1,
           pagination: false,
         }),
         payload.find({
           collection: 'missions',
-          limit: 5,
+          limit: 50,
           pagination: false,
         }),
         payload.find({
           collection: 'books',
-          limit: 5,
+          limit: 10,
           pagination: false,
         }),
         payload.find({
           collection: 'notes',
-          limit: 5,
+          limit: 10,
           pagination: false,
         }),
         payload.find({
@@ -64,7 +68,18 @@ export default async function HomePage() {
         }),
         payload.find({
           collection: 'time-logs',
-          limit: 10,
+          limit: 200,
+          sort: '-startTime',
+          pagination: false,
+        }),
+        payload.find({
+          collection: 'habits',
+          limit: 20,
+          pagination: false,
+        }),
+        payload.find({
+          collection: 'chapters',
+          limit: 50,
           pagination: false,
         }),
       ])
@@ -75,6 +90,8 @@ export default async function HomePage() {
     notes = notesRes.docs || []
     testScores = testScoresRes.docs || []
     timeLogs = timeLogsRes.docs || []
+    habits = habitsRes.docs || []
+    chapters = chaptersRes.docs || []
   } catch (_e) {
     // Database might be uninitialized during static build or fresh setup
   }
@@ -82,22 +99,43 @@ export default async function HomePage() {
   const initialData: DashboardData = {
     user: user
       ? {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          preferences: (user as any).preferences,
-        }
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        preferences: (user as any).preferences,
+      }
       : null,
     projects: projects.map((p) => ({
       id: p.id,
       title: p.title,
       status: p.status,
+      adminStatus: p.adminStatus || 'none',
+      description: p.description,
+      deadline: p.deadline,
+      startDate: p.startDate || null,
+      color: p.color,
+      priority: p.priority || 'medium',
+      computedProgress: p.computedProgress ?? 0,
+      featuredImage: p.featuredImage
+        ? {
+            url: typeof p.featuredImage === 'object' ? p.featuredImage?.url : null,
+            alt: typeof p.featuredImage === 'object' ? p.featuredImage?.alt : null,
+          }
+        : null,
+      videoResource: p.videoResource
+        ? { url: typeof p.videoResource === 'object' ? p.videoResource?.url : null }
+        : null,
+      videoTitle: p.videoTitle || null,
+      plannerId: p.plannerId || null,
+      updatedAt: p.updatedAt,
+      createdAt: p.createdAt,
     })),
     missions: missions.map((m) => ({
       id: m.id,
       title: m.title,
       type: m.type,
       targetHours: m.targetHours,
+      project: typeof m.project === 'object' && m.project ? m.project.id : m.project,
     })),
     books: books.map((b) => ({
       id: b.id,
@@ -125,6 +163,20 @@ export default async function HomePage() {
       duration: tl.duration,
       startTime: tl.startTime,
       endTime: tl.endTime,
+      description: tl.description,
+      mission: typeof tl.mission === 'object' && tl.mission ? tl.mission.id : tl.mission,
+    })),
+    habits: habits.map((h) => ({
+      id: h.id,
+      title: h.title,
+      frequency: h.frequency,
+      streak: h.streak,
+    })),
+    chapters: chapters.map((c) => ({
+      id: c.id,
+      title: c.title,
+      slug: c.slug,
+      bookTitle: typeof c.book === 'object' && c.book ? c.book.title : undefined,
     })),
   }
 
@@ -136,11 +188,11 @@ export default async function HomePage() {
 }
 
 export const metadata: Metadata = {
-  title: 'ToggleDawn — ADHD-Friendly Unified Productivity & Study Dashboard',
+  title: 'ToggleDawn — Mission Mode',
   description:
     'A unified daily management and study platform for neurodivergent individuals. Track study materials, log focus time, visualize exam trends, and build habit streaks.',
   openGraph: {
-    title: 'ToggleDawn — Unified Productivity & Study Dashboard',
+    title: 'ToggleDawn — Mission Mode',
     description:
       'Low-friction study planning, time tracking, and streak-forgiving habit management.',
     url: getServerSideURL(),

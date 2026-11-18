@@ -159,6 +159,7 @@ export const seed = async ({
       type: 'study',
       status: 'active',
       targetHours: 120,
+      targetConfig: { mode: 'total', totalTargetHours: 120 },
       project: projectDoc.id,
     },
   })
@@ -300,7 +301,7 @@ export const seed = async ({
             link: {
               type: 'custom',
               label: 'Admin',
-              url: '/admin',
+              url: '/super-master',
             },
           },
           {

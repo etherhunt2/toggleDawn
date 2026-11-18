@@ -17,6 +17,7 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
   userName: propUserName,
   focusLevel = 72,
 }) => {
+  const [mounted, setMounted] = useState(false);
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
 
@@ -24,9 +25,12 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
   const { user, logout, isAuthenticated } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
 
-  const activeUserName = user?.name || user?.email?.split('@')[0] || propUserName;
+  const activeUserName = mounted
+    ? user?.name || user?.email?.split('@')[0] || propUserName
+    : propUserName;
 
   useEffect(() => {
+    setMounted(true);
     const update = () => {
       const now = new Date();
       setTime(
@@ -57,8 +61,8 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
     focusLevel >= 70
       ? 'text-emerald-400'
       : focusLevel >= 40
-      ? 'text-amber-400'
-      : 'text-red-400';
+        ? 'text-amber-400'
+        : 'text-red-400';
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -88,7 +92,10 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <div className="flex items-center gap-1.5">
           <Shield className="w-3.5 h-3.5 text-[#00f0ff]/60 shrink-0" />
-          <span className="font-hud text-[9px] sm:text-[10px] tracking-[2px] text-[#00f0ff]/70 uppercase truncate">
+          <span
+            className="font-hud text-[9px] sm:text-[10px] tracking-[2px] text-[#00f0ff]/70 uppercase truncate"
+            suppressHydrationWarning
+          >
             {activeUserName ? `OPR: ${activeUserName}` : 'SYSTEM ACTIVE'}
           </span>
         </div>
@@ -100,10 +107,16 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
 
       {/* Center: Clock */}
       <div className="flex flex-col items-center shrink-0">
-        <span className="font-data text-sm sm:text-base text-[#00f0ff] tracking-[3px] text-glow-cyan">
+        <span
+          className="font-data text-sm sm:text-base text-[#00f0ff] tracking-[3px] text-glow-cyan"
+          suppressHydrationWarning
+        >
           {time}
         </span>
-        <span className="font-hud text-[7px] sm:text-[8px] tracking-[2px] text-slate-500 -mt-0.5">
+        <span
+          className="font-hud text-[7px] sm:text-[8px] tracking-[2px] text-slate-500 -mt-0.5"
+          suppressHydrationWarning
+        >
           {date}
         </span>
       </div>
@@ -111,14 +124,14 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
       {/* Right: Status Indicators + User dropdown + Theme toggle */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Theme Toggle Button */}
-        <button
+        {/* <button
           type="button"
           onClick={toggleTheme}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           className="p-1.5 rounded-lg border border-[#00f0ff]/20 bg-black/20 text-[#00f0ff]/70 hover:text-[#00f0ff] hover:border-[#00f0ff]/40 transition-colors"
         >
           {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-        </button>
+        </button> */}
 
         <div className="hidden sm:flex items-center gap-1.5">
           <Activity className="w-3 h-3 text-slate-500" />
@@ -128,7 +141,7 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
           <Wifi className="w-3 h-3 text-[#00f0ff]/40" />
           <Eye className="w-3 h-3 text-[#00f0ff]/40" />
           {/* User dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          {/* <div className="relative" ref={dropdownRef}>
             <button
               onClick={toggleDropdown}
               className="p-1.5 rounded-lg border border-[#00f0ff]/20 bg-black/20 text-[#00f0ff] hover:border-[#00f0ff]/50 transition-colors flex items-center justify-center"
@@ -164,7 +177,7 @@ export const HUDHeader: React.FC<HUDHeaderProps> = ({
                 )}
               </div>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

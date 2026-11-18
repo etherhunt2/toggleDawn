@@ -153,7 +153,7 @@ export const TestEntryForm: React.FC<TestEntryFormProps> = ({ onManageTests, onS
 
       <button
         type="button"
-        onClick={onManageTests ?? (() => window.open('/admin/collections/test-scores', '_blank'))}
+        onClick={onManageTests ?? (() => window.open('/super-master/collections/test-scores', '_blank'))}
         className="hud-btn w-full py-2 rounded-lg text-[9px] tracking-wider flex items-center justify-center gap-2"
       >
         <ListChecks className="w-3 h-3" />

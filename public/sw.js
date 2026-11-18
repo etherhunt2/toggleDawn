@@ -3,7 +3,7 @@
  * Version: v1.0.0
  */
 
-const CACHE_NAME = 'toggledawn-cache-v1';
+const CACHE_NAME = 'toggledawn-cache-v2';
 
 // Essential assets pre-cached upon service worker installation
 const PRECACHE_ASSETS = [
@@ -70,6 +70,7 @@ self.addEventListener('fetch', (event) => {
   // CRITICAL: NEVER cache or intercept Payload CMS Admin, GraphQL, or Auth/API routes
   if (
     url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/super-master') ||
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/next-api') ||
     url.searchParams.has('draft') ||
@@ -81,10 +82,10 @@ self.addEventListener('fetch', (event) => {
   // Strategy A: HTML Page Navigation (Network-First with Offline Fallback)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
         .then((networkResponse) => {
-          // If valid response, clone into cache for future offline visits
-          if (networkResponse && networkResponse.status === 200) {
+          // If valid response, clone into cache for future offline visits (never cache offline.html as page shell)
+          if (networkResponse && networkResponse.status === 200 && !url.pathname.includes('offline')) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
@@ -93,10 +94,12 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(async () => {
-          // Network failed: attempt to match cached version of this page
-          const cachedResponse = await caches.match(request);
-          if (cachedResponse) {
-            return cachedResponse;
+          // Network failed: attempt to match cached version of this page (if not offline.html itself)
+          if (!url.pathname.includes('offline')) {
+            const cachedResponse = await caches.match(request);
+            if (cachedResponse) {
+              return cachedResponse;
+            }
           }
           // Fall back to offline page
           const offlineFallback = await caches.match('/offline.html');
@@ -149,6 +152,11 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+    );
   }
 });
 

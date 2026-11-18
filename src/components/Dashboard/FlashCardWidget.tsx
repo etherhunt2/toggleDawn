@@ -126,7 +126,7 @@ export const FlashCardWidget: React.FC = () => {
               size="sm"
               className="flex-1 border-slate-600/30 bg-slate-800/20 text-slate-400 hover:bg-slate-700/30 hover:text-slate-300 font-hud text-[10px] tracking-wider gap-1.5"
             >
-              <a href="/admin/collections/flash-cards">
+              <a href="/super-master/collections/flash-cards">
                 <Settings className="w-3.5 h-3.5" />
                 Manage
               </a>

@@ -9,6 +9,8 @@ import { Media } from './collections/Media'
 import { Users } from './collections/Users'
 import { Projects } from './collections/Projects'
 import { Missions } from './collections/Missions'
+import { MissionTypes } from './collections/MissionTypes'
+import { MissionPlanners } from './collections/MissionPlanners'
 import { Books } from './collections/Books'
 import { Chapters } from './collections/Chapters'
 import { Notes } from './collections/Notes'
@@ -62,6 +64,9 @@ export default buildConfig({
       titleSuffix: ' | ToggleDawn',
     },
   },
+  routes: {
+    admin: '/super-master',
+  },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db: postgresAdapter({
@@ -73,7 +78,9 @@ export default buildConfig({
   collections: [
     // Core
     Projects,
+    MissionTypes,
     Missions,
+    MissionPlanners,
     // Study (SEO-enabled silo)
     Books,
     Chapters,

@@ -163,6 +163,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
     await logout()
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('toggle-dawn-auth')
+      window.localStorage.removeItem('toggledawn_ops_timer_session')
+      window.localStorage.removeItem('toggledawn_ops_timer_paused')
       window.location.href = '/login'
     }
   }
@@ -180,9 +182,12 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
     return 'OP'
   }
 
+  const isAuth = mounted && isAuthenticated
+
   const isAdmin =
-    user?.role === 'admin' ||
-    user?.email === 'admin@toggledawn.com'
+    mounted &&
+    (user?.role === 'admin' ||
+      user?.email === 'admin@toggledawn.com')
 
   const ThemeIcon =
     currentThemeValue === 'dark' ? Moon : currentThemeValue === 'light' ? Sun : Monitor
@@ -229,7 +234,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
           </div>
 
           {/* ===== CENTER: SPATIAL NAVIGATION CAPSULE (Restricted to Authenticated Operators) ===== */}
-          {isAuthenticated ? (
+          {isAuth ? (
             <nav className="hidden md:flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5 backdrop-blur-md">
               {PRIMARY_NAV.map((item) => {
                 const Icon = item.icon
@@ -242,6 +247,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-data text-xs tracking-wider transition-all duration-200 group ${
                       isActive
                         ? 'bg-[rgba(0,240,255,0.15)] text-[#00f0ff] border border-[rgba(0,240,255,0.4)] shadow-[0_0_14px_rgba(0,240,255,0.2)] font-bold'
@@ -277,7 +283,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
           {/* ===== RIGHT CONTROLS: SEARCH, THEME & USER AVATAR ===== */}
           <div className="flex items-center gap-2 md:gap-3">
             {/* Quick Search Trigger (Only for Authenticated Operators) */}
-            {isAuthenticated ? (
+            {isAuth ? (
               <Link
                 href="/search"
                 aria-label="Search Codex"
@@ -308,7 +314,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
             <div className="w-px h-6 bg-[rgba(0,240,255,0.15)] mx-0.5" />
 
             {/* ===== USER AVATAR WITH SPATIAL DROPDOWN ===== */}
-            {isAuthenticated ? (
+            {isAuth ? (
               <div ref={dropdownRef} className="relative">
                 {/* Avatar Trigger Button */}
                 <button
@@ -394,7 +400,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                       {/* Payload CMS Admin Panel (Exclusive to Administrators) */}
                       {isAdmin && (
                         <a
-                          href="/admin"
+                          href="/super-master"
                           className="flex items-center justify-between px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-[rgba(0,240,255,0.1)] border border-transparent hover:border-[rgba(0,240,255,0.25)] transition-all group"
                         >
                           <div className="flex items-center gap-2.5">
@@ -419,6 +425,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                       {/* Operations Dashboard */}
                       <Link
                         href="/"
+                        prefetch={true}
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-transparent hover:border-white/10 transition-all group"
                       >
                         <div className="w-7 h-7 rounded-lg bg-[#00f0ff]/10 border border-[#00f0ff]/30 flex items-center justify-center text-[#00f0ff] group-hover:scale-105 transition-transform">
@@ -437,6 +444,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                       {/* Flash Cards */}
                       <Link
                         href="/flash-cards"
+                        prefetch={true}
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-transparent hover:border-white/10 transition-all group"
                       >
                         <div className="w-7 h-7 rounded-lg bg-[#00ff9d]/10 border border-[#00ff9d]/30 flex items-center justify-center text-[#00ff9d] group-hover:scale-105 transition-transform">
@@ -455,6 +463,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                       {/* Manuals & Books */}
                       <Link
                         href="/books"
+                        prefetch={true}
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-transparent hover:border-white/10 transition-all group"
                       >
                         <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
@@ -473,6 +482,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                       {/* Codex Search */}
                       <Link
                         href="/search"
+                        prefetch={true}
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-transparent hover:border-white/10 transition-all group"
                       >
                         <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
@@ -491,6 +501,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                       {/* Drafts & Captured Vault */}
                       <Link
                         href="/drafts"
+                        prefetch={true}
                         className="flex items-center justify-between px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-[rgba(245,158,11,0.08)] border border-transparent hover:border-amber-500/30 transition-all group"
                       >
                         <div className="flex items-center gap-2.5">
@@ -634,7 +645,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
           <div className="md:hidden absolute top-full left-0 right-0 mt-2 p-3 rounded-2xl bg-[#060e1d]/95 backdrop-blur-2xl border border-[rgba(0,240,255,0.25)] shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-40 animate-in fade-in slide-in-from-top-2 duration-200">
             
             {/* Primary Nav Links (Only for Authenticated Operators) */}
-            {isAuthenticated ? (
+            {isAuth ? (
               <div className="space-y-1 mb-3">
                 {PRIMARY_NAV.map((item) => {
                   const Icon = item.icon
@@ -647,6 +658,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-data text-xs tracking-wider transition-all ${
                         isActive
@@ -676,7 +688,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
             {/* Quick Link: Admin Panel (Only for Administrators) */}
             {isAdmin && (
               <a
-                href="/admin"
+                href="/super-master"
                 className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 font-hud text-xs font-bold mb-3"
               >
                 <div className="flex items-center gap-2.5">
@@ -706,7 +718,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
             </button>
 
             {/* Mobile Auth Status & Actions */}
-            {isAuthenticated ? (
+            {isAuth ? (
               <div className="pt-2 border-t border-white/5 space-y-2">
                 <div className="flex items-center justify-between px-2 font-data text-xs text-slate-400">
                   <span className="truncate max-w-[180px]">{user?.email}</span>

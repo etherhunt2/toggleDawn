@@ -1,15 +1,9 @@
-import Script from 'next/script'
 import React from 'react'
 
 import { defaultTheme, themeLocalStorageKey } from '../ThemeSelector/types'
 
 export const InitTheme: React.FC = () => {
-  return (
-    // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
-    <Script
-      dangerouslySetInnerHTML={{
-        __html: `
-  (function () {
+  const scriptContent = `(function () {
     function getImplicitPreference() {
       var mediaQuery = '(prefers-color-scheme: dark)'
       var mql = window.matchMedia(mediaQuery)
@@ -40,11 +34,16 @@ export const InitTheme: React.FC = () => {
     }
 
     document.documentElement.setAttribute('data-theme', themeToSet)
-  })();
-  `,
-      }}
+  })();`
+
+  return (
+    <script
       id="theme-script"
-      strategy="beforeInteractive"
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{
+        __html: scriptContent,
+      }}
     />
   )
 }
+

@@ -4,7 +4,7 @@ import { checkRole } from '../../access/checkRole'
 export const Users: CollectionConfig = {
   slug: 'users',
   access: {
-    // Restrict access to /admin dashboard exclusively to administrators
+    // Restrict access to /super-master dashboard exclusively to administrators
     admin: ({ req: { user } }) => checkRole('admin', user),
     // Normal registration is allowed for any user
     create: () => true,
@@ -70,7 +70,7 @@ export const Users: CollectionConfig = {
       defaultValue: 'user',
       saveToJWT: true,
       options: [
-        { label: 'Administrator (Full Access + /admin)', value: 'admin' },
+        { label: 'Administrator (Full Access + /super-master)', value: 'admin' },
         { label: 'Normal User (Operator Dashboard)', value: 'user' },
       ],
       access: {
@@ -80,7 +80,7 @@ export const Users: CollectionConfig = {
       },
       admin: {
         position: 'sidebar',
-        description: 'Only administrators can modify roles or grant access to the /admin dashboard.',
+        description: 'Only administrators can modify roles or grant access to the /super-master dashboard.',
       },
     },
     {

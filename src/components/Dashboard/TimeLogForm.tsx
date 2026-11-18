@@ -150,7 +150,7 @@ export const TimeLogForm: React.FC<TimeLogFormProps> = ({ onManageTime, onSubmit
 
       <button
         type="button"
-        onClick={onManageTime ?? (() => window.open('/admin/collections/time-logs', '_blank'))}
+        onClick={onManageTime ?? (() => window.open('/super-master/collections/time-logs', '_blank'))}
         className="hud-btn w-full py-2 rounded-lg text-[9px] tracking-wider flex items-center justify-center gap-2"
       >
         <ListChecks className="w-3 h-3" />

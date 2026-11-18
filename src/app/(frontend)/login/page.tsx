@@ -416,7 +416,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
                     <Lock className="w-3.5 h-3.5" /> Normal Operator Access
                   </div>
                   <p className="text-[11px] leading-relaxed">
-                    Public registration commissions a <strong>Normal User</strong> account with complete access to your personal study dashboard (<code className="text-white">/</code>), notes, flashcards, time logs, and drafts. Access to the <code className="text-white">/admin</code> CMS panel requires administrator authorization.
+                    Public registration commissions a <strong>Normal User</strong> account with complete access to your personal study dashboard (<code className="text-white">/</code>), notes, flashcards, time logs, and drafts. Access to the <code className="text-white">/super-master</code> CMS panel requires administrator authorization.
                   </p>
                 </div>
               )}
@@ -468,7 +468,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
                 </p>
                 <div className="font-data text-xs space-y-1">
                   <div className="flex items-center justify-between text-[11px] bg-black/40 p-1.5 rounded border border-white/5">
-                    <span className="text-amber-300 font-bold">Admin (Access to /admin + /):</span>
+                    <span className="text-amber-300 font-bold">Admin (Access to /super-master + /):</span>
                     <span className="font-mono text-slate-300">admin@toggledawn.com / password</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] bg-black/40 p-1.5 rounded border border-white/5">

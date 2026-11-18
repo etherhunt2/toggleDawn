@@ -13,6 +13,7 @@
       --cyan: #00f0ff;
       --amber: #f59e0b;
       --red: #ef4444;
+      --green: #00ff9d;
       --text: #e2e8f0;
       --muted: #64748b;
     }
@@ -122,11 +123,50 @@
       gap: 8px;
       transition: all 0.2s ease;
       box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+      user-select: none;
     }
-    .action-btn:hover {
+    .action-btn:hover:not(:disabled) {
       background: var(--cyan);
       color: #02060d;
       box-shadow: 0 0 24px rgba(0, 240, 255, 0.5);
+    }
+    .action-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+    .action-btn.loading {
+      opacity: 0.85;
+      cursor: wait;
+      border-color: rgba(0, 240, 255, 0.5);
+      color: var(--cyan);
+    }
+    .action-btn.loading svg {
+      animation: spin 0.8s linear infinite;
+    }
+    .action-btn.success {
+      background: rgba(0, 255, 157, 0.2);
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 20px rgba(0, 255, 157, 0.4);
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .hud-feedback {
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      min-height: 18px;
+      transition: color 0.2s;
+    }
+    .hud-feedback.error {
+      color: var(--red);
+    }
+    .hud-feedback.info {
+      color: var(--cyan);
+    }
+    .hud-feedback.success {
+      color: var(--green);
     }
     .status-bar {
       margin-top: 24px;
@@ -166,26 +206,193 @@
       Please verify your network link.
     </p>
 
-    <button class="action-btn" onclick="window.location.reload()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <button id="uplink-btn" class="action-btn" onclick="reEstablishUplink()">
+      <svg id="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/>
       </svg>
-      Re-Establish Uplink
+      <span id="btn-text">Re-Establish Uplink</span>
     </button>
 
+    <div id="hud-feedback" class="hud-feedback"></div>
+
     <div class="status-bar">
-      <span>STATE: STANDBY</span>
-      <span>AUTO-RETRY: ACTIVE</span>
+      <span id="status-state">STATE: STANDBY</span>
+      <span id="status-retry">AUTO-RETRY: ACTIVE</span>
     </div>
   </div>
 
   <script>
-    // Automatically reload when connection is re-established
+    let isReconnecting = false;
+    let autoRetryTimer = null;
+    let retryCount = 0;
+
+    // Resolve target path so we never get trapped refreshing /offline.html
+    function getDestinationUrl() {
+      const currentPath = window.location.pathname;
+      if (currentPath && !currentPath.includes('offline')) {
+        return currentPath + window.location.search + window.location.hash;
+      }
+      if (document.referrer) {
+        try {
+          const ref = new URL(document.referrer);
+          if (ref.origin === window.location.origin && !ref.pathname.includes('offline')) {
+            return ref.pathname + ref.search + ref.hash;
+          }
+        } catch (_) {}
+      }
+      return '/';
+    }
+
+    // Lightweight connectivity probe — tries multiple strategies
+    async function probeServer() {
+      const bustCache = '_t=' + Date.now();
+
+      // Strategy 1: Probe the origin root with a HEAD request (bypasses SW for /api)
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 4000);
+        const r = await fetch('/api/users/me?' + bustCache, {
+          method: 'HEAD',
+          cache: 'no-store',
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        // Any HTTP status means the server is alive (even 401/404)
+        if (r.status) return true;
+      } catch (_) {}
+
+      // Strategy 2: Check navigator.onLine — quick sanity check
+      if (!navigator.onLine) return false;
+
+      // Strategy 3: Fetch the target page directly (HEAD) bypassing SW cache
+      try {
+        const target = getDestinationUrl();
+        const ctrl2 = new AbortController();
+        const tid2 = setTimeout(() => ctrl2.abort(), 4000);
+        const r2 = await fetch(target + (target.includes('?') ? '&' : '?') + bustCache, {
+          method: 'HEAD',
+          cache: 'no-store',
+          signal: ctrl2.signal,
+        });
+        clearTimeout(tid2);
+        if (r2.status && r2.status < 500) return true;
+      } catch (_) {}
+
+      // Strategy 4: Try fetching favicon (small, always present on a live server)
+      try {
+        const ctrl3 = new AbortController();
+        const tid3 = setTimeout(() => ctrl3.abort(), 3000);
+        const r3 = await fetch('/favicon.ico?' + bustCache, {
+          method: 'HEAD',
+          cache: 'no-store',
+          signal: ctrl3.signal,
+        });
+        clearTimeout(tid3);
+        if (r3.status && r3.status < 500) return true;
+      } catch (_) {}
+
+      return false;
+    }
+
+    async function reEstablishUplink() {
+      if (isReconnecting) return;
+      isReconnecting = true;
+      retryCount++;
+
+      const btn = document.getElementById('uplink-btn');
+      const btnText = document.getElementById('btn-text');
+      const stateEl = document.getElementById('status-state');
+      const feedbackEl = document.getElementById('hud-feedback');
+
+      btn.classList.add('loading');
+      btn.classList.remove('success');
+      btn.disabled = true;
+      btnText.textContent = 'VERIFYING UPLINK...';
+      stateEl.textContent = 'STATE: PROBING SERVER...';
+      stateEl.style.color = 'var(--cyan)';
+      feedbackEl.className = 'hud-feedback info';
+      feedbackEl.textContent = 'Probing server node... (attempt ' + retryCount + ')';
+
+      const targetPath = getDestinationUrl();
+      const serverAlive = await probeServer();
+
+      if (serverAlive) {
+        onUplinkSuccess(targetPath);
+        return;
+      }
+
+      // Uplink probe failed — server is still offline
+      isReconnecting = false;
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btnText.textContent = 'RE-ESTABLISH UPLINK';
+      stateEl.textContent = 'STATE: UNREACHABLE';
+      stateEl.style.color = 'var(--red)';
+      feedbackEl.className = 'hud-feedback error';
+      feedbackEl.textContent = navigator.onLine
+        ? 'Server unreachable. Ensure dev server (pnpm dev) is running.'
+        : 'Device is offline. Check your Wi-Fi or mobile data.';
+
+      // Shake animation
+      btn.animate([
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-6px)' },
+        { transform: 'translateX(6px)' },
+        { transform: 'translateX(-4px)' },
+        { transform: 'translateX(4px)' },
+        { transform: 'translateX(0)' }
+      ], { duration: 350 });
+    }
+
+    function onUplinkSuccess(targetPath) {
+      const btn = document.getElementById('uplink-btn');
+      const btnText = document.getElementById('btn-text');
+      const stateEl = document.getElementById('status-state');
+      const feedbackEl = document.getElementById('hud-feedback');
+
+      btn.classList.remove('loading');
+      btn.classList.add('success');
+      btnText.textContent = 'UPLINK RESTORED';
+      stateEl.textContent = 'STATE: ONLINE // REDIRECTING...';
+      stateEl.style.color = 'var(--green)';
+      feedbackEl.className = 'hud-feedback success';
+      feedbackEl.textContent = 'Connection active. Transferring to HUD...';
+
+      // Clear stale SW cache so we get fresh pages
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+      }
+
+      // Hard navigate — replace avoids back-button returning to offline.html
+      setTimeout(() => {
+        window.location.replace(targetPath);
+      }, 400);
+    }
+
+    // Auto-retry polling every 5 seconds
+    function startAutoRetry() {
+      if (autoRetryTimer) clearInterval(autoRetryTimer);
+      document.getElementById('status-retry').textContent = 'AUTO-RETRY: ACTIVE';
+      autoRetryTimer = setInterval(async () => {
+        if (isReconnecting) return;
+        const alive = await probeServer();
+        if (alive) {
+          console.log('[ToggleDawn PWA] Background auto-retry succeeded. Reconnecting...');
+          clearInterval(autoRetryTimer);
+          reEstablishUplink();
+        }
+      }, 5000);
+    }
+
+    startAutoRetry();
+
+    // Trigger on browser 'online' event (instant reconnect when network restores)
     window.addEventListener('online', () => {
-      console.log('[ToggleDawn PWA] Network uplink detected. Reconnecting...');
-      window.location.reload();
+      console.log('[ToggleDawn PWA] Online event triggered. Re-establishing uplink...');
+      // Small delay to let DNS/routes settle
+      setTimeout(() => reEstablishUplink(), 500);
     });
   </script>
 </body>
 </html>
-

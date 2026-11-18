@@ -139,6 +139,7 @@ export const PieChartComponent: React.FC<PieChartProps> = ({ timeLogs: propLogs 
           opacity={0.85}
           stroke="rgba(3,7,18,0.5)"
           strokeWidth={1.5}
+          suppressHydrationWarning
         >
           <title>{`${seg.label}: 100%`}</title>
         </circle>
@@ -146,6 +147,7 @@ export const PieChartComponent: React.FC<PieChartProps> = ({ timeLogs: propLogs 
     }
 
     let cumAngle = -90 // start from top
+    const roundCoord = (val: number) => Math.round(val * 1000) / 1000
 
     return segments.map((seg, i) => {
       const angle = (seg.duration / total) * 360
@@ -156,10 +158,10 @@ export const PieChartComponent: React.FC<PieChartProps> = ({ timeLogs: propLogs 
       const startRad = (startAngle * Math.PI) / 180
       const endRad = (endAngle * Math.PI) / 180
 
-      const x1 = cx + r * Math.cos(startRad)
-      const y1 = cy + r * Math.sin(startRad)
-      const x2 = cx + r * Math.cos(endRad)
-      const y2 = cy + r * Math.sin(endRad)
+      const x1 = roundCoord(cx + r * Math.cos(startRad))
+      const y1 = roundCoord(cy + r * Math.sin(startRad))
+      const x2 = roundCoord(cx + r * Math.cos(endRad))
+      const y2 = roundCoord(cy + r * Math.sin(endRad))
 
       const largeArc = angle > 180 ? 1 : 0
       const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`
@@ -172,6 +174,7 @@ export const PieChartComponent: React.FC<PieChartProps> = ({ timeLogs: propLogs 
           opacity={0.85}
           stroke="rgba(3,7,18,0.5)"
           strokeWidth={1.5}
+          suppressHydrationWarning
         >
           <title>{`${seg.label}: ${seg.percentage}%`}</title>
         </path>
@@ -215,14 +218,46 @@ export const PieChartComponent: React.FC<PieChartProps> = ({ timeLogs: propLogs 
         <div className="flex flex-col sm:flex-row items-center gap-5">
           {/* SVG Pie */}
           <div className="relative shrink-0">
-            <svg width="160" height="160" viewBox="0 0 160 160" className="drop-shadow-[0_0_12px_rgba(0,240,255,0.1)]">
+            <svg
+              width="160"
+              height="160"
+              viewBox="0 0 160 160"
+              className="drop-shadow-[0_0_12px_rgba(0,240,255,0.1)]"
+              suppressHydrationWarning
+            >
               {renderPieVisual()}
               {/* Center hole for donut effect */}
-              <circle cx="80" cy="80" r="35" fill="rgba(3,7,18,0.9)" stroke="rgba(0,240,255,0.08)" strokeWidth="1" />
-              <text x="80" y="76" textAnchor="middle" className="font-data" fill="#00f0ff" fontSize="14" opacity="0.9">
+              <circle
+                cx="80"
+                cy="80"
+                r="35"
+                fill="rgba(3,7,18,0.9)"
+                stroke="rgba(0,240,255,0.08)"
+                strokeWidth="1"
+                suppressHydrationWarning
+              />
+              <text
+                x="80"
+                y="76"
+                textAnchor="middle"
+                className="font-data"
+                fill="#00f0ff"
+                fontSize="14"
+                opacity="0.9"
+                suppressHydrationWarning
+              >
                 {Math.round(total / 60)}h
               </text>
-              <text x="80" y="92" textAnchor="middle" className="font-hud" fill="rgba(148,163,184,0.5)" fontSize="6" letterSpacing="1.5">
+              <text
+                x="80"
+                y="92"
+                textAnchor="middle"
+                className="font-hud"
+                fill="rgba(148,163,184,0.5)"
+                fontSize="6"
+                letterSpacing="1.5"
+                suppressHydrationWarning
+              >
                 TOTAL
               </text>
             </svg>

@@ -13,7 +13,7 @@ import 'dotenv/config'
 import { getPayload } from 'payload'
 import config from './payload.config'
 
-// Admin account for Payload CMS Admin Panel (/admin)
+// Admin account for Payload CMS Admin Panel (/super-master)
 const ADMIN_EMAIL = 'admin@toggledawn.com'
 const ADMIN_PASSWORD = 'password'
 const ADMIN_NAME = 'ToggleDawn Administrator'
@@ -61,7 +61,7 @@ async function seed() {
 
   const payload = await getPayload({ config })
 
-  // ─── 1. Ensure Admin User (for Payload CMS Admin Panel /admin) ───
+  // ─── 1. Ensure Admin User (for Payload CMS Admin Panel /super-master) ───
   let adminUser: any
   const existingAdmins = await payload.find({
     collection: 'users',
@@ -199,6 +199,7 @@ async function seed() {
       type: 'study',
       description: 'Complete HC Verma Vol 1 and solve all exercises for Mechanics and Thermodynamics.',
       targetHours: 200,
+      targetConfig: { mode: 'total', totalTargetHours: 200 },
       status: 'active',
       project: proj1.id,
       owner: user.id,
@@ -213,6 +214,7 @@ async function seed() {
       type: 'study',
       description: 'Differential and Integral calculus from basic limits to multivariable. Cover all PYQ patterns.',
       targetHours: 150,
+      targetConfig: { mode: 'total', totalTargetHours: 150 },
       status: 'active',
       project: proj1.id,
       owner: user.id,
@@ -227,6 +229,7 @@ async function seed() {
       type: 'habit',
       description: '30-minute daily workout — alternating cardio and strength training.',
       targetHours: 50,
+      targetConfig: { mode: 'daily', dailyTargetHours: 0.5 },
       status: 'active',
       project: proj2.id,
       owner: user.id,
@@ -241,6 +244,7 @@ async function seed() {
       type: 'study',
       description: 'Build 3 full-stack projects using Next.js 15+ and Payload CMS 3.x.',
       targetHours: 120,
+      targetConfig: { mode: 'weekly', weeklyActiveDays: ['mon', 'tue', 'wed', 'thu', 'fri'], hoursPerActiveDay: 2 },
       status: 'active',
       project: proj2.id,
       owner: user.id,
@@ -703,7 +707,7 @@ async function seed() {
   console.log('🎯 SEED COMPLETE — ToggleDawn Demo Data')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('   🔑 PAYLOAD CMS ADMIN PANEL:')
-  console.log('      URL:      http://localhost:3000/admin')
+  console.log('      URL:      http://localhost:3000/super-master')
   console.log(`      Email:    ${ADMIN_EMAIL}`)
   console.log(`      Password: ${ADMIN_PASSWORD}`)
   console.log('   👤 FRONTEND OPERATOR / DEMO USER:')

@@ -68,7 +68,9 @@ export interface Config {
   blocks: {};
   collections: {
     projects: Project;
+    'mission-types': MissionType;
     missions: Mission;
+    'mission-planners': MissionPlanner;
     books: Book;
     chapters: Chapter;
     notes: Note;
@@ -94,8 +96,12 @@ export interface Config {
     projects: {
       missions: 'missions';
     };
+    'mission-types': {
+      missions: 'missions';
+    };
     missions: {
       books: 'books';
+      planners: 'mission-planners';
     };
     books: {
       chapters: 'chapters';
@@ -109,7 +115,9 @@ export interface Config {
   };
   collectionsSelect: {
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    'mission-types': MissionTypesSelect<false> | MissionTypesSelect<true>;
     missions: MissionsSelect<false> | MissionsSelect<true>;
+    'mission-planners': MissionPlannersSelect<false> | MissionPlannersSelect<true>;
     books: BooksSelect<false> | BooksSelect<true>;
     chapters: ChaptersSelect<false> | ChaptersSelect<true>;
     notes: NotesSelect<false> | NotesSelect<true>;
@@ -185,129 +193,84 @@ export interface UserAuthOperations {
  */
 export interface Project {
   id: number;
-  title: string;
-  description?: string | null;
-  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'archived';
-  deadline?: string | null;
-  categories?: (number | Category)[] | null;
   /**
-   * Hex color for visual tagging in the dashboard (e.g. #6C5CE7).
+   * Project name displayed across the HUD dashboard.
+   */
+  title: string;
+  /**
+   * Short summary or objective of this project.
+   */
+  description?: string | null;
+  /**
+   * Featured banner image shown on the project detail page and project cards.
+   */
+  featuredImage?: (number | null) | Media;
+  /**
+   * An instructional or reference video for this project. Only visible on the individual project detail page in the user dashboard.
+   */
+  videoResource?: (number | null) | Media;
+  /**
+   * Optional label for the video shown beneath the player.
+   */
+  videoTitle?: string | null;
+  /**
+   * Your own lifecycle status for this project.
+   */
+  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'archived';
+  /**
+   * ⚠️ Admin only. Use to forcefully terminate or verify completion of a project. Overrides the user status in the dashboard display.
+   */
+  adminStatus?: ('none' | 'terminated' | 'admin-completed') | null;
+  /**
+   * Auto-computed from time logs vs mission target hours. Updated on every save. Use "Admin Forced Progress" below to override.
+   */
+  computedProgress?: number | null;
+  /**
+   * ⚠️ Admin only. Enter 0–100 to pin progress to a specific value, bypassing automatic computation. Leave blank to use auto-computation.
+   */
+  adminForcedProgress?: number | null;
+  /**
+   * Target completion date. Shown in progress bars and countdown labels.
+   */
+  deadline?: string | null;
+  /**
+   * When work on this project officially began.
+   */
+  startDate?: string | null;
+  /**
+   * Hex color for visual tagging in the HUD dashboard.
    */
   color?: string | null;
+  /**
+   * Tag this project with one or more categories.
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * 🔗 Reserved for future Planner / Mind-Map feature. Store the planner document ID here to link this project to a planner board.
+   */
+  plannerId?: string | null;
+  /**
+   * All missions linked to this project (computed join — read only).
+   */
   missions?: {
     docs?: (number | Mission)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  /**
+   * Internal notes visible only to the project owner and admins.
+   */
+  notes?: string | null;
+  /**
+   * Priority level for queue ordering in the HUD.
+   */
+  priority?: ('critical' | 'high' | 'medium' | 'low') | null;
+  /**
+   * Owner is set automatically on creation.
+   */
   owner?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories".
- */
-export interface Category {
-  id: number;
-  title: string;
-  /**
-   * What kind of content this category applies to.
-   */
-  type: 'project' | 'mission' | 'exam' | 'book' | 'chapter' | 'note' | 'general';
-  /**
-   * Optional description for this category.
-   */
-  description?: string | null;
-  /**
-   * Hex color code for visual identification (e.g. #6C5CE7).
-   */
-  color?: string | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Focused goals within a project — Study, Habit, or Hobby.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "missions".
- */
-export interface Mission {
-  id: number;
-  title: string;
-  type: 'study' | 'habit' | 'hobby';
-  description?: string | null;
-  /**
-   * Target hours to dedicate to this mission.
-   */
-  targetHours?: number | null;
-  status: 'active' | 'paused' | 'completed';
-  project: number | Project;
-  categories?: (number | Category)[] | null;
-  books?: {
-    docs?: (number | Book)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  owner?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Books and study materials organized by subject.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "books".
- */
-export interface Book {
-  id: number;
-  title: string;
-  /**
-   * Author of the book.
-   */
-  author?: string | null;
-  /**
-   * Subject area (e.g. Mathematics, Physics, History).
-   */
-  subject: string;
-  /**
-   * Total number of pages in the book.
-   */
-  totalPages?: number | null;
-  /**
-   * Brief summary of the book content.
-   */
-  description?: string | null;
-  coverImage?: (number | null) | Media;
-  mission: number | Mission;
-  categories?: (number | Category)[] | null;
-  meta?: {
-    title?: string | null;
-    description?: string | null;
-  };
-  /**
-   * Auto-calculated from chapter completion.
-   */
-  completionPercent?: number | null;
-  progressStatus?: ('not-started' | 'in-progress' | 'completed') | null;
-  chapters?: {
-    docs?: (number | Chapter)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  owner?: (number | null) | User;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -429,6 +392,503 @@ export interface FolderInterface {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  title: string;
+  /**
+   * What kind of content this category applies to.
+   */
+  type: 'project' | 'mission' | 'exam' | 'book' | 'chapter' | 'note' | 'general';
+  /**
+   * Optional description for this category.
+   */
+  description?: string | null;
+  /**
+   * Hex color code for visual identification (e.g. #6C5CE7).
+   */
+  color?: string | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Focused goals within a project. Flexibly measured by timer hours, streaks, notes, tasks, or time-slots.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "missions".
+ */
+export interface Mission {
+  id: number;
+  /**
+   * Mission name displayed in the HUD dashboard.
+   */
+  title: string;
+  /**
+   * What this mission aims to achieve.
+   */
+  description?: string | null;
+  /**
+   * Choose a mission type to define how this mission is measured. Create new types in the Mission Types collection.
+   */
+  missionType?: (number | null) | MissionType;
+  /**
+   * Legacy type field. Use Mission Type (relationship) for flexible measurement.
+   */
+  type?: ('study' | 'habit' | 'hobby' | 'coding' | 'lead-gen') | null;
+  /**
+   * Your own lifecycle status for this mission.
+   */
+  status: 'planning' | 'active' | 'paused' | 'completed' | 'archived';
+  /**
+   * ⚠️ Admin only. Forcefully terminate or verify completion of a mission.
+   */
+  adminStatus?: ('none' | 'terminated' | 'admin-completed') | null;
+  /**
+   * Define flexible time targets — daily hours, weekly schedule with active days, time-slot quotas, or a flat total.
+   */
+  targetConfig: {
+    /**
+     * How the target is structured. Determines which sub-fields to show.
+     */
+    mode: 'total' | 'daily' | 'weekly' | 'time-slots' | 'custom';
+    /**
+     * Overall target hours for this mission (regardless of schedule).
+     */
+    totalTargetHours?: number | null;
+    /**
+     * Hours to log per day (e.g. 1 hour daily).
+     */
+    dailyTargetHours?: number | null;
+    /**
+     * Which days of the week are active for this mission.
+     */
+    weeklyActiveDays?: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[] | null;
+    /**
+     * Hours to log on each active day (e.g. 2 hours per day Mon–Fri).
+     */
+    hoursPerActiveDay?: number | null;
+    /**
+     * Auto-calculated or manually set total weekly target. E.g. 2h × 5 days = 10h/week.
+     */
+    weeklyTotalTarget?: number | null;
+    /**
+     * Define time-of-day slots (e.g. 1h morning, 1h afternoon, 1h evening, 1h night).
+     */
+    timeSlots?:
+      | {
+          slotName: 'morning' | 'afternoon' | 'evening' | 'night' | 'custom';
+          customSlotLabel?: string | null;
+          /**
+           * Target minutes for this slot each active day.
+           */
+          targetMinutes: number;
+          /**
+           * Start hour (24h format).
+           */
+          startHour?: number | null;
+          /**
+           * End hour (24h format).
+           */
+          endHour?: number | null;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Describe the custom target schedule in plain text (for missions that do not fit standard modes).
+     */
+    customTargetDescription?: string | null;
+  };
+  /**
+   * Legacy flat target hours. When targetConfig is set, this is auto-computed from the schedule.
+   */
+  targetHours?: number | null;
+  /**
+   * Auto-computed based on mission type measurement dimensions. Admin can override via "Admin Force Progress".
+   */
+  computedProgress?: number | null;
+  /**
+   * ⚠️ Admin only. Enter 0–100 to pin progress, bypassing automatic computation.
+   */
+  adminForcedProgress?: number | null;
+  /**
+   * Streak counters for habit/hobby type missions. Updated automatically or manually.
+   */
+  streakData?: {
+    /**
+     * Current active streak (consecutive days met).
+     */
+    currentStreak?: number | null;
+    /**
+     * Best streak ever achieved.
+     */
+    longestStreak?: number | null;
+    /**
+     * Total days the mission was followed/completed.
+     */
+    totalFollowed?: number | null;
+    /**
+     * Total days the mission was missed/cheated.
+     */
+    totalMissed?: number | null;
+    /**
+     * Array of { date: "YYYY-MM-DD", status: "completed" | "missed" | "partial" } entries.
+     */
+    streakHistory?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  /**
+   * Target completion date for this mission.
+   */
+  deadline?: string | null;
+  /**
+   * When work on this mission officially began.
+   */
+  startDate?: string | null;
+  /**
+   * Priority level for queue ordering.
+   */
+  priority?: ('critical' | 'high' | 'medium' | 'low') | null;
+  /**
+   * Parent project this mission belongs to.
+   */
+  project: number | Project;
+  /**
+   * Tag this mission with categories.
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * Internal notes visible only to the mission owner and admins.
+   */
+  notes?: string | null;
+  books?: {
+    docs?: (number | Book)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * All planners linked to this mission (computed join — read only).
+   */
+  planners?: {
+    docs?: (number | MissionPlanner)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Owner is set automatically on creation.
+   */
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * User-defined mission types. Each type defines its measurement strategy — timer hours, streaks, notes, tasks, time-slots, or any combination.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mission-types".
+ */
+export interface MissionType {
+  id: number;
+  /**
+   * Name of this mission type (e.g. Study, Habit, Hobby, Coding, Lead Gen).
+   */
+  name: string;
+  /**
+   * Optional explanation of what this mission type is for.
+   */
+  description?: string | null;
+  /**
+   * Choose a built-in icon or upload your own.
+   */
+  iconMode?: ('preset' | 'upload') | null;
+  /**
+   * Select a built-in icon to represent this type.
+   */
+  presetIcon?:
+    | (
+        | 'study'
+        | 'habit'
+        | 'hobby'
+        | 'coding'
+        | 'lead-gen'
+        | 'writing'
+        | 'music'
+        | 'meditation'
+        | 'communication'
+        | 'research'
+        | 'analytics'
+        | 'general'
+      )
+    | null;
+  /**
+   * Upload a custom icon image (PNG, SVG, or WebP preferred).
+   */
+  icon?: (number | null) | Media;
+  /**
+   * Define HOW missions of this type are measured. Add one or more dimensions. Each dimension contributes to the overall progress and score card.
+   */
+  measurementDimensions?:
+    | (
+        | {
+            /**
+             * Display label for this dimension on the scorecard.
+             */
+            label?: string | null;
+            /**
+             * Weight (%) of this dimension in overall progress. All weights should sum to 100 across all dimensions.
+             */
+            weight?: number | null;
+            /**
+             * How timer hours factor into scoring for this type.
+             */
+            description?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'timer-hours';
+          }
+        | {
+            /**
+             * Display label (e.g. "Daily Streak", "Consistency Score").
+             */
+            label?: string | null;
+            /**
+             * Weight (%) in overall progress.
+             */
+            weight?: number | null;
+            /**
+             * Whether to track and penalize "cheated" or missed days.
+             */
+            trackCheatedDays?: boolean | null;
+            /**
+             * How streak data factors into the report card.
+             */
+            description?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'streak-tracking';
+          }
+        | {
+            /**
+             * Display label (e.g. "Study Notes", "Reading Progress").
+             */
+            label?: string | null;
+            /**
+             * Weight (%) in overall progress.
+             */
+            weight?: number | null;
+            /**
+             * Count notes created by the user.
+             */
+            trackCreated?: boolean | null;
+            /**
+             * Count notes marked as read/completed.
+             */
+            trackRead?: boolean | null;
+            /**
+             * Count notes edited/revised by the user.
+             */
+            trackEdited?: boolean | null;
+            /**
+             * How note activity factors into the scorecard.
+             */
+            description?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'note-tracking';
+          }
+        | {
+            /**
+             * Display label (e.g. "Sprint Tasks", "Coding Tasks").
+             */
+            label?: string | null;
+            /**
+             * Weight (%) in overall progress.
+             */
+            weight?: number | null;
+            /**
+             * How task completion factors into scoring (future Tasks collection integration).
+             */
+            description?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'task-completion';
+          }
+        | {
+            /**
+             * Display label (e.g. "Daily Slots", "Time Schedule").
+             */
+            label?: string | null;
+            /**
+             * Weight (%) in overall progress.
+             */
+            weight?: number | null;
+            /**
+             * Define the time slots to track. Each slot has a name, target minutes, and time window.
+             */
+            slots?:
+              | {
+                  slotName: 'morning' | 'afternoon' | 'evening' | 'night' | 'custom';
+                  /**
+                   * Name for your custom time slot.
+                   */
+                  customSlotName?: string | null;
+                  /**
+                   * Target minutes to log within this slot each day.
+                   */
+                  targetMinutes: number;
+                  /**
+                   * Start hour (24h, e.g. 6 = 6am, 17 = 5pm). Used for custom slots.
+                   */
+                  startHour?: number | null;
+                  /**
+                   * End hour (24h, e.g. 12 = 12pm, 21 = 9pm). Used for custom slots.
+                   */
+                  endHour?: number | null;
+                  id?: string | null;
+                }[]
+              | null;
+            /**
+             * How time-slot adherence factors into the report card and missed-slot alerts.
+             */
+            description?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'time-slot-tracking';
+          }
+      )[]
+    | null;
+  /**
+   * All missions using this type (computed join — read only).
+   */
+  missions?: {
+    docs?: (number | Mission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Owner is set automatically on creation.
+   */
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name?: string | null;
+  /**
+   * Only administrators can modify roles or grant access to the /super-master dashboard.
+   */
+  role: 'admin' | 'user';
+  /**
+   * User preferences for the ToggleDawn experience.
+   */
+  preferences?: {
+    theme?: ('light' | 'dark' | 'system') | null;
+    defaultProjectView?: ('grid' | 'list') | null;
+    /**
+     * IANA timezone string (e.g. Asia/Kolkata, America/New_York).
+     */
+    timezone?: string | null;
+    /**
+     * Target productive hours per day.
+     */
+    dailyGoalHours?: number | null;
+    enableNotifications?: boolean | null;
+    /**
+     * Number of missed days before a streak resets. ADHD-friendly forgiveness buffer.
+     */
+    streakForgivenessBuffer?: number | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * Books and study materials organized by subject.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "books".
+ */
+export interface Book {
+  id: number;
+  title: string;
+  /**
+   * Author of the book.
+   */
+  author?: string | null;
+  /**
+   * Subject area (e.g. Mathematics, Physics, History).
+   */
+  subject: string;
+  /**
+   * Total number of pages in the book.
+   */
+  totalPages?: number | null;
+  /**
+   * Brief summary of the book content.
+   */
+  description?: string | null;
+  coverImage?: (number | null) | Media;
+  mission: number | Mission;
+  categories?: (number | Category)[] | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  /**
+   * Auto-calculated from chapter completion.
+   */
+  completionPercent?: number | null;
+  progressStatus?: ('not-started' | 'in-progress' | 'completed') | null;
+  chapters?: {
+    docs?: (number | Chapter)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  owner?: (number | null) | User;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
  * Chapter divisions within a book.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -528,55 +988,94 @@ export interface Note {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Mission-specific planners. Create checklists, outlines, or mind-map nodes for a mission.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "mission-planners".
  */
-export interface User {
+export interface MissionPlanner {
   id: number;
-  name?: string | null;
   /**
-   * Only administrators can modify roles or grant access to the /admin dashboard.
+   * Name of this planner (e.g. "Week 1 Sprint Plan", "Study Roadmap").
    */
-  role: 'admin' | 'user';
+  title: string;
   /**
-   * User preferences for the ToggleDawn experience.
+   * What this planner covers or how it structures the mission work.
    */
-  preferences?: {
-    theme?: ('light' | 'dark' | 'system') | null;
-    defaultProjectView?: ('grid' | 'list') | null;
-    /**
-     * IANA timezone string (e.g. Asia/Kolkata, America/New_York).
-     */
-    timezone?: string | null;
-    /**
-     * Target productive hours per day.
-     */
-    dailyGoalHours?: number | null;
-    enableNotifications?: boolean | null;
-    /**
-     * Number of missed days before a streak resets. ADHD-friendly forgiveness buffer.
-     */
-    streakForgivenessBuffer?: number | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
+  description?: string | null;
+  /**
+   * The mission this planner belongs to.
+   */
+  mission: number | Mission;
+  status: 'draft' | 'active' | 'completed' | 'archived';
+  /**
+   * Structure format for this planner.
+   */
+  planType?: ('checklist' | 'outline' | 'mindmap' | 'freeform') | null;
+  /**
+   * Checklist items. Mark each as done when completed.
+   */
+  checklistItems?:
     | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
+        text: string;
+        isCompleted?: boolean | null;
+        priority?: ('high' | 'medium' | 'low') | null;
+        dueDate?: string | null;
+        id?: string | null;
       }[]
     | null;
-  password?: string | null;
-  collection: 'users';
+  /**
+   * Ordered steps or phases.
+   */
+  outlineSteps?:
+    | {
+        stepTitle: string;
+        stepDescription?: string | null;
+        isCompleted?: boolean | null;
+        estimatedHours?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Mind-map nodes. Use parentNodeId for tree hierarchy.
+   */
+  mindmapNodes?:
+    | {
+        /**
+         * Unique identifier for this node (auto-generated or manual).
+         */
+        nodeId: string;
+        /**
+         * Parent node ID. Leave empty for root nodes.
+         */
+        parentNodeId?: string | null;
+        text: string;
+        /**
+         * Hex color for this node branch.
+         */
+        color?: string | null;
+        isExpanded?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Free-form planning notes, brainstorming, or scratchpad.
+   */
+  freeformContent?: string | null;
+  /**
+   * Visual color tag for HUD display.
+   */
+  color?: string | null;
+  /**
+   * Display order among planners for the same mission.
+   */
+  sortOrder?: number | null;
+  /**
+   * Owner is set automatically on creation.
+   */
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Flash cards for quick revision — text, image, or PDF per card.
@@ -1519,8 +2018,16 @@ export interface PayloadLockedDocument {
         value: number | Project;
       } | null)
     | ({
+        relationTo: 'mission-types';
+        value: number | MissionType;
+      } | null)
+    | ({
         relationTo: 'missions';
         value: number | Mission;
+      } | null)
+    | ({
+        relationTo: 'mission-planners';
+        value: number | MissionPlanner;
       } | null)
     | ({
         relationTo: 'books';
@@ -1631,10 +2138,98 @@ export interface PayloadMigration {
 export interface ProjectsSelect<T extends boolean = true> {
   title?: T;
   description?: T;
+  featuredImage?: T;
+  videoResource?: T;
+  videoTitle?: T;
   status?: T;
+  adminStatus?: T;
+  computedProgress?: T;
+  adminForcedProgress?: T;
   deadline?: T;
-  categories?: T;
+  startDate?: T;
   color?: T;
+  categories?: T;
+  plannerId?: T;
+  missions?: T;
+  notes?: T;
+  priority?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mission-types_select".
+ */
+export interface MissionTypesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  iconMode?: T;
+  presetIcon?: T;
+  icon?: T;
+  measurementDimensions?:
+    | T
+    | {
+        'timer-hours'?:
+          | T
+          | {
+              label?: T;
+              weight?: T;
+              description?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'streak-tracking'?:
+          | T
+          | {
+              label?: T;
+              weight?: T;
+              trackCheatedDays?: T;
+              description?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'note-tracking'?:
+          | T
+          | {
+              label?: T;
+              weight?: T;
+              trackCreated?: T;
+              trackRead?: T;
+              trackEdited?: T;
+              description?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'task-completion'?:
+          | T
+          | {
+              label?: T;
+              weight?: T;
+              description?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'time-slot-tracking'?:
+          | T
+          | {
+              label?: T;
+              weight?: T;
+              slots?:
+                | T
+                | {
+                    slotName?: T;
+                    customSlotName?: T;
+                    targetMinutes?: T;
+                    startHour?: T;
+                    endHour?: T;
+                    id?: T;
+                  };
+              description?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
   missions?: T;
   owner?: T;
   updatedAt?: T;
@@ -1646,13 +2241,97 @@ export interface ProjectsSelect<T extends boolean = true> {
  */
 export interface MissionsSelect<T extends boolean = true> {
   title?: T;
-  type?: T;
   description?: T;
-  targetHours?: T;
+  missionType?: T;
+  type?: T;
   status?: T;
+  adminStatus?: T;
+  targetConfig?:
+    | T
+    | {
+        mode?: T;
+        totalTargetHours?: T;
+        dailyTargetHours?: T;
+        weeklyActiveDays?: T;
+        hoursPerActiveDay?: T;
+        weeklyTotalTarget?: T;
+        timeSlots?:
+          | T
+          | {
+              slotName?: T;
+              customSlotLabel?: T;
+              targetMinutes?: T;
+              startHour?: T;
+              endHour?: T;
+              id?: T;
+            };
+        customTargetDescription?: T;
+      };
+  targetHours?: T;
+  computedProgress?: T;
+  adminForcedProgress?: T;
+  streakData?:
+    | T
+    | {
+        currentStreak?: T;
+        longestStreak?: T;
+        totalFollowed?: T;
+        totalMissed?: T;
+        streakHistory?: T;
+      };
+  deadline?: T;
+  startDate?: T;
+  priority?: T;
   project?: T;
   categories?: T;
+  notes?: T;
   books?: T;
+  planners?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mission-planners_select".
+ */
+export interface MissionPlannersSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  mission?: T;
+  status?: T;
+  planType?: T;
+  checklistItems?:
+    | T
+    | {
+        text?: T;
+        isCompleted?: T;
+        priority?: T;
+        dueDate?: T;
+        id?: T;
+      };
+  outlineSteps?:
+    | T
+    | {
+        stepTitle?: T;
+        stepDescription?: T;
+        isCompleted?: T;
+        estimatedHours?: T;
+        id?: T;
+      };
+  mindmapNodes?:
+    | T
+    | {
+        nodeId?: T;
+        parentNodeId?: T;
+        text?: T;
+        color?: T;
+        isExpanded?: T;
+        id?: T;
+      };
+  freeformContent?: T;
+  color?: T;
+  sortOrder?: T;
   owner?: T;
   updatedAt?: T;
   createdAt?: T;

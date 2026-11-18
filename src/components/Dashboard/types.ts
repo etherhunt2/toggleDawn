@@ -14,12 +14,32 @@ export interface DashboardData {
     id: string | number
     title: string
     status?: string | null
+    adminStatus?: string | null
+    description?: string | null
+    deadline?: string | null
+    startDate?: string | null
+    color?: string | null
+    priority?: string | null
+    computedProgress?: number | null
+    featuredImage?: { url?: string | null; alt?: string | null } | null
+    videoResource?: { url?: string | null } | null
+    videoTitle?: string | null
+    plannerId?: string | null
+    updatedAt?: string | null
+    createdAt?: string | null
   }>
   missions?: Array<{
     id: string | number
     title: string
     type?: string | null
     targetHours?: number | null
+    project?: string | number | null
+  }>
+  habits?: Array<{
+    id: string | number
+    title: string
+    frequency?: string | null
+    streak?: number | null
   }>
   books?: Array<{
     id: string | number
@@ -56,5 +76,7 @@ export interface DashboardData {
     duration?: number | null
     startTime?: string | null
     endTime?: string | null
+    description?: string | null
+    mission?: string | number | null
   }>
 }

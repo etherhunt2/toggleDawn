@@ -153,7 +153,11 @@ export const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ onManageTests })
       {activeTab === 'tests' && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
           <div className="sm:col-span-2 relative h-40 w-full flex items-center">
-            <svg viewBox="0 0 320 120" className="w-full h-full overflow-visible">
+            <svg
+              viewBox="0 0 320 120"
+              className="w-full h-full overflow-visible"
+              suppressHydrationWarning
+            >
               <defs>
                 <linearGradient id="cyanGlowHud" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#00f0ff" stopOpacity="0.15" />

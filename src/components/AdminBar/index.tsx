@@ -3,10 +3,9 @@
 import type { PayloadAdminBarProps, PayloadMeUser } from '@payloadcms/admin-bar'
 
 import { cn } from '@/utilities/ui'
-import { useSelectedLayoutSegments } from 'next/navigation'
+import { useSelectedLayoutSegments, useRouter } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 import './index.scss'
@@ -41,20 +40,11 @@ export const AdminBar: React.FC<{
 }> = (props) => {
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
+  const router = useRouter()
   const [show, setShow] = useState(false)
 
-  // Completely hide AdminBar on Login and Signup pages
-  const isAuthPage = segments?.[0] === 'login' || segments?.[0] === 'signup'
-  if (isAuthPage) {
-    return null
-  }
-  const collection = (
-    collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'books'
-  ) as keyof typeof collectionLabels
-  const router = useRouter()
-
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {
-    // Only display Payload Admin Bar to administrators with /admin clearance
+    // Only display Payload Admin Bar to administrators with /super-master clearance
     const u = user as (PayloadMeUser & { role?: string }) | undefined
     setShow(Boolean(u?.id && (u.role === 'admin' || u.email?.startsWith('admin@'))))
   }, [])
@@ -72,9 +62,21 @@ export const AdminBar: React.FC<{
     useAuthStore.getState().logout()
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('toggle-dawn-auth')
+      window.localStorage.removeItem('toggledawn_ops_timer_session')
+      window.localStorage.removeItem('toggledawn_ops_timer_paused')
       window.location.href = '/login'
     }
   }, [])
+
+  // Completely hide AdminBar on Login and Signup pages
+  const isAuthPage = segments?.[0] === 'login' || segments?.[0] === 'signup'
+  if (isAuthPage) {
+    return null
+  }
+
+  const collection = (
+    collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'books'
+  ) as keyof typeof collectionLabels
 
   return (
     <div
@@ -86,6 +88,7 @@ export const AdminBar: React.FC<{
       <div className="container">
         <PayloadAdminBar
           {...adminBarProps}
+          adminPath="/super-master"
           className="py-2 text-white"
           classNames={{
             controls: 'font-medium text-white',

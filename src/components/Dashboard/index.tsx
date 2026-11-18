@@ -17,6 +17,9 @@ import { TimeLogForm } from './TimeLogForm'
 import { PieChartComponent } from './PieChart'
 import { FlashCardWidget } from './FlashCardWidget'
 import { DashboardSearchTerminal } from './DashboardSearchTerminal'
+import { OpsTimerManageModal } from './OpsTimer/OpsTimerManageModal'
+import { PomodoroRatingPrompt } from './OpsTimer/PomodoroRatingPrompt'
+import { ProjectOverview } from './ProjectOverview'
 import type { DashboardData } from './types'
 import {
   useAuthStore,
@@ -26,6 +29,7 @@ import {
   useMissionStore,
   useHabitStore,
   useScheduleStore,
+  useOpsTimerStore,
 } from '@/stores'
 
 export interface DashboardProps {
@@ -96,6 +100,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData }) => {
     setDopamine({ message, points })
   }
 
+  // OPS Timer subscriptions
+  const isManageModalOpen = useOpsTimerStore((s) => s.isManageModalOpen)
+  const openManageModal = useOpsTimerStore((s) => s.openManageModal)
+  const closeManageModal = useOpsTimerStore((s) => s.closeManageModal)
+  const syncWithDatabase = useOpsTimerStore((s) => s.syncWithDatabase)
+
+  // Sync last paused session from database on mount / login
+  useEffect(() => {
+    syncWithDatabase()
+
+    const handleSessionComplete = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail
+      setDopamine({
+        message: `OBJECTIVE COMPLETE // ${detail?.targetTitle || 'SPRINT'} (${detail?.durationMinutes || 25}M)`,
+        points: 75,
+      })
+    }
+
+    const handleSessionQuit = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail
+      setDopamine({
+        message: `SESSION QUIT // ${detail?.elapsedMinutes || 0}M SAVED FOR ${detail?.targetTitle || 'OBJECTIVE'}`,
+        points: 15,
+      })
+    }
+
+    const handleSessionTerminated = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail
+      setDopamine({
+        message: `SESSION TERMINATED // ALL DATA DESTROYED FOR ${detail?.targetTitle || 'OBJECTIVE'}`,
+        points: 0,
+      })
+    }
+
+    window.addEventListener('toggledawn:session-complete', handleSessionComplete)
+    window.addEventListener('toggledawn:session-quit', handleSessionQuit)
+    window.addEventListener('toggledawn:session-terminated', handleSessionTerminated)
+
+    return () => {
+      window.removeEventListener('toggledawn:session-complete', handleSessionComplete)
+      window.removeEventListener('toggledawn:session-quit', handleSessionQuit)
+      window.removeEventListener('toggledawn:session-terminated', handleSessionTerminated)
+    }
+  }, [syncWithDatabase])
+
   const handleSaveQuickNote = async (noteText: string) => {
     setReadingNoteTitle(`Summary: ${noteText}`)
     triggerReward('INTEL CAPTURED', 15)
@@ -158,7 +207,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData }) => {
       {/* Content Layer */}
       <div className="relative z-10 w-full max-w-6xl flex flex-col min-h-screen">
         {/* HUD Top Bar */}
-        <HUDHeader userName={initialData?.user?.name} />
+        <HUDHeader
+          userName={initialData?.user?.name || initialData?.user?.email?.split('@')[0]}
+        />
 
         {/* Main Scrollable Area */}
         <div className="flex-1 px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-36 sm:pb-48 overflow-y-auto hud-scroll">
@@ -209,7 +260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData }) => {
                     </div>
                     <QuickInputRow
                       onSaveQuickNote={handleSaveQuickNote}
-                      onManageTime={() => setActiveModal('time')}
+                      onManageTime={() => openManageModal(1)}
                     />
                   </div>
 
@@ -237,6 +288,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData }) => {
                       duration: l.duration,
                       startTime: l.startTime,
                     }))} />
+                  </div>
+
+                  {/* Project Overview */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 bg-emerald-500/60 rounded-full" />
+                      <span className="font-hud text-[9px] sm:text-[10px] tracking-[3px] text-emerald-500/50 uppercase">
+                        Project Overview
+                      </span>
+                    </div>
+                    <ProjectOverview
+                      projects={initialData?.projects}
+                      missions={initialData?.missions}
+                      timeLogs={initialData?.timeLogs}
+                      notes={initialData?.notes}
+                    />
                   </div>
                 </div>
 
@@ -347,6 +414,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData }) => {
         userPreferences={initialData?.user?.preferences}
         onSaveItem={handleModalSave}
       />
+
+      {/* Strategic Mobile-First OPS Pomodoro Timer Modal */}
+      <OpsTimerManageModal
+        isOpen={isManageModalOpen}
+        onClose={closeManageModal}
+        habits={initialData?.habits}
+        missions={initialData?.missions}
+        projects={initialData?.projects}
+        books={initialData?.books}
+        chapters={initialData?.chapters}
+      />
+
+      {/* Floating 5-Point Emoji Pomodoro Rating Prompt */}
+      <PomodoroRatingPrompt />
     </div>
   )
 }
