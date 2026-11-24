@@ -11,6 +11,7 @@ import { Header } from '@/Header/Component'
 import { PWAInstaller } from '@/components/PWA/PWAInstaller'
 import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
+import { OfflineProvider } from '@/providers/OfflineProvider'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { draftMode } from 'next/headers'
 
@@ -68,9 +69,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               preview: isEnabled,
             }}
           />
-          <Header />
-          {children}
-          <PWAInstaller />
+          <OfflineProvider>
+            <Header />
+            {children}
+            <PWAInstaller />
+          </OfflineProvider>
         </Providers>
       </body>
     </html>

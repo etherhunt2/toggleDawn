@@ -28,9 +28,11 @@ import {
   ExternalLink,
   Inbox,
   Download,
+  CloudUpload,
 } from 'lucide-react'
 import { useCapturedAssetsStore } from '@/stores/useCapturedAssetsStore'
 import { triggerPWAInstall } from '@/components/PWA/PWAInstaller'
+import { useOfflineStore } from '@/stores/useOfflineStore'
 
 interface HeaderClientProps {
   data?: HeaderType
@@ -78,6 +80,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
   const { setTheme: setGlobalTheme } = useTheme()
   const { user, isAuthenticated, logout, checkAuth } = useAuthStore()
   const rawDraftCount = useCapturedAssetsStore((s) => s.getDraftCount())
+  const { pendingCount: offlinePendingCount, isOnline } = useOfflineStore()
 
   const [mounted, setMounted] = useState(false)
   const [currentThemeValue, setCurrentThemeValue] = useState<string>('auto')
@@ -550,6 +553,40 @@ export const HeaderClient: React.FC<HeaderClientProps> = () => {
                           PWA
                         </span>
                       </button>
+
+                      {/* Data Sync — Offline Queue Management */}
+                      <Link
+                        href="/sync"
+                        prefetch={true}
+                        className="flex items-center justify-between px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-[rgba(245,158,11,0.08)] border border-transparent hover:border-amber-500/30 transition-all group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+                            <CloudUpload className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <p className="font-hud text-xs font-semibold text-slate-200 group-hover:text-amber-300 transition-colors">
+                              DATA SYNC
+                            </p>
+                            <p className="font-data text-[10px] text-slate-400">
+                              {!isOnline ? 'Offline — data queued locally' : offlinePendingCount > 0 ? `${offlinePendingCount} records pending` : 'All data synced with Neon'}
+                            </p>
+                          </div>
+                        </div>
+                        {offlinePendingCount > 0 ? (
+                          <span className="font-mono text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded px-1.5 py-0.5 animate-pulse">
+                            {offlinePendingCount}
+                          </span>
+                        ) : !isOnline ? (
+                          <span className="font-mono text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded px-1.5 py-0.5">
+                            OFFLINE
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[9px] bg-[#00ff9d]/15 text-[#00ff9d] border border-[#00ff9d]/30 rounded px-1.5 py-0.5">
+                            SYNCED
+                          </span>
+                        )}
+                      </Link>
                     </div>
 
                     {/* Section: Spatial Theme Selector */}

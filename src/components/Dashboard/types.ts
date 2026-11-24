@@ -13,6 +13,7 @@ export interface DashboardData {
   projects?: Array<{
     id: string | number
     title: string
+    slug?: string | null
     status?: string | null
     adminStatus?: string | null
     description?: string | null
@@ -31,9 +32,43 @@ export interface DashboardData {
   missions?: Array<{
     id: string | number
     title: string
+    slug?: string | null
     type?: string | null
     targetHours?: number | null
     project?: string | number | null
+    missionType?: { id: string | number; name: string; presetIcon?: string | null } | null
+    status?: string | null
+    adminStatus?: string | null
+    computedProgress?: number | null
+    priority?: string | null
+    deadline?: string | null
+    startDate?: string | null
+    description?: string | null
+    notes?: string | null
+    targetConfig?: {
+      mode: string
+      totalTargetHours?: number | null
+      dailyTargetHours?: number | null
+      weeklyActiveDays?: string[] | null
+      hoursPerActiveDay?: number | null
+      weeklyTotalTarget?: number | null
+      timeSlots?: Array<{
+        slotName: string
+        customSlotLabel?: string | null
+        targetMinutes: number
+        startHour?: number | null
+        endHour?: number | null
+      }> | null
+      customTargetDescription?: string | null
+    } | null
+    streakData?: {
+      currentStreak?: number | null
+      longestStreak?: number | null
+      totalFollowed?: number | null
+      totalMissed?: number | null
+    } | null
+    updatedAt?: string | null
+    createdAt?: string | null
   }>
   habits?: Array<{
     id: string | number

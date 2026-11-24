@@ -158,6 +158,7 @@ export interface Config {
   user: User;
   jobs: {
     tasks: {
+      'redis-sync': TaskRedisSync;
       schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
@@ -269,6 +270,11 @@ export interface Project {
    * Owner is set automatically on creation.
    */
   owner?: (number | null) | User;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -591,6 +597,11 @@ export interface Mission {
    * Owner is set automatically on creation.
    */
   owner?: (number | null) | User;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1966,7 +1977,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'schedulePublish';
+        taskSlug: 'inline' | 'redis-sync' | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -1999,7 +2010,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'schedulePublish') | null;
+  taskSlug?: ('inline' | 'redis-sync' | 'schedulePublish') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -2154,6 +2165,8 @@ export interface ProjectsSelect<T extends boolean = true> {
   notes?: T;
   priority?: T;
   owner?: T;
+  generateSlug?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2288,6 +2301,8 @@ export interface MissionsSelect<T extends boolean = true> {
   books?: T;
   planners?: T;
   owner?: T;
+  generateSlug?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3225,6 +3240,19 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRedis-sync".
+ */
+export interface TaskRedisSync {
+  input?: unknown;
+  output: {
+    processed?: number | null;
+    succeeded?: number | null;
+    failed?: number | null;
+    remaining?: number | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -1,9 +1,16 @@
 /**
  * useNotesStore — Zustand store for notes management.
  * Fetches from Payload REST API and caches client-side.
+ * Supports full offline CRUD with "latest timestamp wins" sync.
  */
 
 import { create } from 'zustand'
+import { offlineSave, offlineUpdate, offlineDeleteOp } from '@/lib/offlineDB'
+
+// Use a lazy getter to avoid circular dependency with useOfflineStore
+function getOfflineStore() {
+  return import('@/stores/useOfflineStore').then((m) => m.useOfflineStore)
+}
 
 export interface Note {
   id: number
@@ -75,47 +82,73 @@ export const useNotesStore = create<NotesState>()((set, get) => ({
   setActiveNote: (note) => set({ activeNote: note }),
 
   createNote: async (data) => {
-    try {
-      const payloadData: any = { ...data }
-      if (!payloadData.slug && payloadData.title) {
-        payloadData.slug = payloadData.title
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+    // Build normalized payload (slug + lexical content normalization)
+    const payloadData: any = { ...data }
+    if (!payloadData.slug && payloadData.title) {
+      payloadData.slug =
+        payloadData.title
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '') || `note-${Date.now()}`
+    }
+    if (typeof payloadData.content === 'string' || !payloadData.content?.root) {
+      const text =
+        typeof payloadData.content === 'string' ? payloadData.content : payloadData.title || ''
+      payloadData.content = {
+        root: {
+          type: 'root',
+          format: '',
+          indent: 0,
+          version: 1,
+          direction: 'ltr',
+          children: [
+            {
+              type: 'paragraph',
+              format: '',
+              indent: 0,
+              version: 1,
+              direction: 'ltr',
+              children: [
+                {
+                  type: 'text',
+                  detail: 0,
+                  format: 0,
+                  mode: 'normal',
+                  style: '',
+                  text,
+                  version: 1,
+                },
+              ],
+            },
+          ],
+        },
       }
-      if (typeof payloadData.content === 'string' || !payloadData.content?.root) {
-        const text = typeof payloadData.content === 'string' ? payloadData.content : payloadData.title || ''
-        payloadData.content = {
-          root: {
-            type: 'root',
-            format: '',
-            indent: 0,
-            version: 1,
-            direction: 'ltr',
-            children: [
-              {
-                type: 'paragraph',
-                format: '',
-                indent: 0,
-                version: 1,
-                direction: 'ltr',
-                children: [
-                  {
-                    type: 'text',
-                    detail: 0,
-                    format: 0,
-                    mode: 'normal',
-                    style: '',
-                    text,
-                    version: 1,
-                  },
-                ],
-              },
-            ],
-          },
-        }
-      }
+    }
 
+    if (!isOnline) {
+      try {
+        const localId = await offlineSave('notes', { ...payloadData, _operation: 'create' })
+        const tempNote: Note = {
+          id: -localId,
+          title: payloadData.title ?? '',
+          noteType: payloadData.noteType ?? 'note',
+          ...payloadData,
+          createdAt: new Date().toISOString(),
+        }
+        set((state) => ({ notes: [tempNote, ...state.notes] }))
+        const store = await getOfflineStore()
+        await store.getState().refreshPendingCount()
+        return tempNote
+      } catch (e: any) {
+        set({ error: e.message })
+        return null
+      }
+    }
+
+    // Online path
+    try {
       const res = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,6 +166,29 @@ export const useNotesStore = create<NotesState>()((set, get) => ({
   },
 
   updateNote: async (id, data) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+    if (!isOnline) {
+      try {
+        await offlineUpdate('notes', id, data)
+        set((state) => ({
+          notes: state.notes.map((n) =>
+            n.id === id ? { ...n, ...data, updatedAt: new Date().toISOString() } : n,
+          ),
+          activeNote:
+            state.activeNote?.id === id
+              ? { ...state.activeNote, ...data, updatedAt: new Date().toISOString() }
+              : state.activeNote,
+        }))
+        const store = await getOfflineStore()
+        await store.getState().refreshPendingCount()
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // Online path
     try {
       const res = await fetch(`/api/notes/${id}`, {
         method: 'PATCH',
@@ -144,7 +200,10 @@ export const useNotesStore = create<NotesState>()((set, get) => ({
       const updated = await res.json()
       set((state) => ({
         notes: state.notes.map((n) => (n.id === id ? { ...n, ...updated.doc } : n)),
-        activeNote: state.activeNote?.id === id ? { ...state.activeNote, ...updated.doc } : state.activeNote,
+        activeNote:
+          state.activeNote?.id === id
+            ? { ...state.activeNote, ...updated.doc }
+            : state.activeNote,
       }))
       return true
     } catch {
@@ -153,6 +212,25 @@ export const useNotesStore = create<NotesState>()((set, get) => ({
   },
 
   deleteNote: async (id) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+    if (!isOnline) {
+      try {
+        // Only queue a delete op for real server records (positive ids)
+        if (id > 0) await offlineDeleteOp('notes', id)
+        set((state) => ({
+          notes: state.notes.filter((n) => n.id !== id),
+          activeNote: state.activeNote?.id === id ? null : state.activeNote,
+        }))
+        const store = await getOfflineStore()
+        await store.getState().refreshPendingCount()
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // Online path
     try {
       const res = await fetch(`/api/notes/${id}`, { method: 'DELETE', credentials: 'include' })
       if (!res.ok) return false
@@ -168,4 +246,3 @@ export const useNotesStore = create<NotesState>()((set, get) => ({
 
   clearError: () => set({ error: null }),
 }))
-

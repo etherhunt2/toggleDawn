@@ -126,11 +126,41 @@ function writeCachedSession(key: string, data: unknown): void {
  * GUARANTEE: Exactly 1 row per target in the database.
  * If a row already exists for this target, it is PATCHed/updated in place.
  * The original startTime (when timer began) is preserved; updatedAt reflects the latest update.
+ *
+ * When offline, buffers the record in IndexedDB under the 'time-logs' collection.
  */
 async function persistToDatabase(
   session: OpsTimerSession,
   actionStatus: 'paused' | 'terminated' | 'quit' | 'completed',
 ): Promise<number | null> {
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+  if (!isOnline) {
+    // Buffer in IndexedDB under 'time-logs' collection
+    const { offlineSave } = await import('@/lib/offlineDB')
+    await offlineSave('time-logs', {
+      _operation: 'create',
+      sessionId: session.sessionId,
+      targetTitle: session.target.title,
+      targetType: session.target.type,
+      targetId: session.target.id,
+      totalElapsedSeconds: session.totalElapsedSeconds,
+      targetDurationMinutes: Math.round(session.targetDurationSeconds / 60),
+      ratings: JSON.stringify(session.ratings),
+      currentCycle: session.currentCycle,
+      pomodorosCompleted: session.pomodorosCompleted,
+      status: actionStatus,
+      startTime: session.startTime,
+      endTime: new Date().toISOString(),
+      description: `[OPS_TIMER] ${JSON.stringify({ sessionId: session.sessionId, status: actionStatus, targetTitle: session.target.title, elapsedSeconds: session.totalElapsedSeconds })}`,
+    })
+    // Refresh pending count
+    const { useOfflineStore } = await import('@/stores/useOfflineStore')
+    useOfflineStore.getState().refreshPendingCount()
+    return null // No DB id when offline
+  }
+
+  // Online: existing fetch logic
   try {
     const currentUser = useAuthStore.getState().user
 

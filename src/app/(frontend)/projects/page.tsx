@@ -55,6 +55,7 @@ export default async function ProjectsIndexPage() {
     projects: (projectsRes.docs || []).map((p: any) => ({
       id: p.id,
       title: p.title,
+      slug: p.slug || null,
       description: p.description || null,
       status: p.status,
       adminStatus: p.adminStatus || 'none',
@@ -74,6 +75,7 @@ export default async function ProjectsIndexPage() {
     missions: (missionsRes.docs || []).map((m: any) => ({
       id: m.id,
       title: m.title,
+      slug: m.slug || null,
       project: typeof m.project === 'object' && m.project ? m.project.id : m.project,
       targetHours: m.targetHours || 0,
       status: m.status,

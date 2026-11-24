@@ -8,11 +8,13 @@ import React from 'react'
 import { ProjectDetailClient } from './ProjectDetailClient'
 
 interface Props {
-  params: Promise<{ id: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function ProjectDetailPage({ params }: Props) {
-  const { id } = await params
+  const { slug } = await params
+  const decodedSlug = decodeURIComponent(slug)
+
   const payload = await getPayload({ config: configPromise })
   const headers = await getHeaders()
 
@@ -26,14 +28,24 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   if (!user) redirect('/login')
 
-  // Fetch the project
+  // Find project by slug (or fallback to ID if numeric)
   let project: any = null
   try {
-    project = await payload.findByID({
+    const projectRes = await payload.find({
       collection: 'projects',
-      id: Number(id),
+      where: { slug: { equals: decodedSlug } },
+      limit: 1,
       depth: 1,
     })
+    project = projectRes.docs?.[0] || null
+
+    if (!project && !isNaN(Number(decodedSlug))) {
+      project = await payload.findByID({
+        collection: 'projects',
+        id: Number(decodedSlug),
+        depth: 1,
+      })
+    }
   } catch {
     notFound()
   }
@@ -45,7 +57,7 @@ export default async function ProjectDetailPage({ params }: Props) {
     collection: 'missions',
     where: { project: { equals: project.id } },
     limit: 50,
-    depth: 0,
+    depth: 1,
   })
   const missions = missionsRes.docs || []
   const missionIds = missions.map((m: any) => m.id)
@@ -87,6 +99,7 @@ export default async function ProjectDetailPage({ params }: Props) {
     project: {
       id: project.id,
       title: project.title,
+      slug: project.slug || null,
       description: project.description || null,
       status: project.status,
       adminStatus: project.adminStatus || 'none',
@@ -110,10 +123,26 @@ export default async function ProjectDetailPage({ params }: Props) {
     missions: missions.map((m: any) => ({
       id: m.id,
       title: m.title,
+      slug: m.slug || null,
       type: m.type,
       status: m.status,
       targetHours: m.targetHours || 0,
       description: m.description || null,
+      missionType:
+        typeof m.missionType === 'object' && m.missionType
+          ? {
+              id: m.missionType.id,
+              name: m.missionType.name,
+              presetIcon: m.missionType.presetIcon || null,
+            }
+          : null,
+      adminStatus: m.adminStatus || 'none',
+      computedProgress: m.computedProgress ?? 0,
+      priority: m.priority || 'medium',
+      deadline: m.deadline || null,
+      startDate: m.startDate || null,
+      streakData: m.streakData || null,
+      targetConfig: m.targetConfig || null,
     })),
     timeLogs: timeLogs.map((tl: any) => ({
       id: tl.id,
@@ -140,19 +169,48 @@ export default async function ProjectDetailPage({ params }: Props) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
+  const { slug } = await params
+  const decodedSlug = decodeURIComponent(slug)
+
   try {
     const payload = await getPayload({ config: configPromise })
-    const project = await payload.findByID({
+    let project = (await payload.find({
       collection: 'projects',
-      id: Number(id),
+      where: { slug: { equals: decodedSlug } },
+      limit: 1,
       depth: 0,
-    })
+    })).docs?.[0] || null
+
+    if (!project && !isNaN(Number(decodedSlug))) {
+      project = await payload.findByID({
+        collection: 'projects',
+        id: Number(decodedSlug),
+        depth: 0,
+      })
+    }
+
+    if (!project) return { title: 'Project — ToggleDawn' }
+
     return {
       title: `${project.title} — ToggleDawn Project`,
       description: project.description || `Project detail for ${project.title}`,
     }
   } catch {
     return { title: 'Project — ToggleDawn' }
+  }
+}
+
+export async function generateStaticParams() {
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const projects = await payload.find({
+      collection: 'projects',
+      limit: 1000,
+      pagination: false,
+      select: { slug: true },
+    })
+    return (projects.docs || []).map((p: any) => ({ slug: p.slug }))
+  } catch {
+    return []
   }
 }

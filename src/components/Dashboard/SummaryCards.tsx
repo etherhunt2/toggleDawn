@@ -86,9 +86,17 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
             />
           </div>
         </div>
-        <button type="button" onClick={onManageMissions} className="hud-btn w-full py-2 rounded-lg text-[10px]">
-          Manage
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Link
+            href="/missions"
+            className="hud-btn flex-1 py-2 rounded-lg text-[10px] text-center block"
+          >
+            All Missions
+          </Link>
+          <button type="button" onClick={onManageMissions} className="hud-btn py-2 px-2.5 rounded-lg text-[10px]">
+            +
+          </button>
+        </div>
       </div>
 
       {/* 4. Objective Tracker */}

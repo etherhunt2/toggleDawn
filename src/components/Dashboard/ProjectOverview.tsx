@@ -24,6 +24,7 @@ interface ProjectOverviewProps {
 interface ProjectWithMetrics {
   id: string | number
   title: string
+  slug?: string | null
   status?: string | null
   adminStatus?: string | null
   description?: string | null
@@ -128,6 +129,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       return {
         id: p.id,
         title: p.title,
+        slug: (p as any).slug || null,
         status: p.status,
         adminStatus: (p as any).adminStatus || 'none',
         description: p.description,
@@ -213,7 +215,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       {/* ═══════════════════════════════════════════════════ */}
       {lastActiveProject && (
         <Link
-          href={`/projects/${lastActiveProject.id}`}
+          href={`/projects/${lastActiveProject.slug || lastActiveProject.id}`}
           className="block group"
         >
           <div
@@ -363,7 +365,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             {sevenDayProjects.map((p) => (
               <Link
                 key={p.id}
-                href={`/projects/${p.id}`}
+                href={`/projects/${p.slug || p.id}`}
                 className="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-black/30 border border-white/5 hover:border-[#00f0ff]/30 hover:bg-black/50 transition-all"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -426,7 +428,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 return (
                   <Link
                     key={p.id}
-                    href={`/projects/${p.id}`}
+                    href={`/projects/${p.slug || p.id}`}
                     className="group flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors"
                   >
                     {/* Color dot */}

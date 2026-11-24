@@ -146,6 +146,7 @@ export const seed = async ({
     collection: 'projects',
     data: {
       title: 'Target Exam 2026',
+      slug: 'target-exam-2026',
       description: 'Unified study plan and habit tracking for upcoming engineering competitive tests.',
       status: 'active',
     },
@@ -156,6 +157,7 @@ export const seed = async ({
     draft: false,
     data: {
       title: 'Physics & Mechanics Mastery',
+      slug: 'physics-mechanics-mastery',
       type: 'study',
       status: 'active',
       targetHours: 120,

@@ -50,6 +50,8 @@ export default async function HomePage() {
           collection: 'missions',
           limit: 50,
           pagination: false,
+          depth: 1,
+          sort: '-updatedAt',
         }),
         payload.find({
           collection: 'books',
@@ -108,6 +110,7 @@ export default async function HomePage() {
     projects: projects.map((p) => ({
       id: p.id,
       title: p.title,
+      slug: p.slug || null,
       status: p.status,
       adminStatus: p.adminStatus || 'none',
       description: p.description,
@@ -133,9 +136,25 @@ export default async function HomePage() {
     missions: missions.map((m) => ({
       id: m.id,
       title: m.title,
+      slug: m.slug || null,
       type: m.type,
       targetHours: m.targetHours,
       project: typeof m.project === 'object' && m.project ? m.project.id : m.project,
+      missionType: typeof m.missionType === 'object' && m.missionType
+        ? { id: m.missionType.id, name: m.missionType.name, presetIcon: m.missionType.presetIcon || null }
+        : null,
+      status: m.status || 'active',
+      adminStatus: (m as any).adminStatus || 'none',
+      computedProgress: (m as any).computedProgress ?? 0,
+      priority: (m as any).priority || 'medium',
+      deadline: (m as any).deadline || null,
+      startDate: (m as any).startDate || null,
+      description: m.description || null,
+      notes: (m as any).notes || null,
+      targetConfig: (m as any).targetConfig || null,
+      streakData: (m as any).streakData || null,
+      updatedAt: m.updatedAt,
+      createdAt: m.createdAt,
     })),
     books: books.map((b) => ({
       id: b.id,

@@ -3,6 +3,7 @@ import * as migration_20261109_040307_add_habits_and_schedules from './20261109_
 import * as migration_20261110_115833_add_user_role from './20261110_115833_add_user_role';
 import * as migration_20261117_045355_add_project_enhancements from './20261117_045355_add_project_enhancements';
 import * as migration_20261117_064010_enhance_missions_system from './20261117_064010_enhance_missions_system';
+import * as migration_20261118_155833_add_slug_to_projects_and_missions from './20261118_155833_add_slug_to_projects_and_missions';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20261117_064010_enhance_missions_system.up,
     down: migration_20261117_064010_enhance_missions_system.down,
-    name: '20261117_064010_enhance_missions_system'
+    name: '20261117_064010_enhance_missions_system',
+  },
+  {
+    up: migration_20261118_155833_add_slug_to_projects_and_missions.up,
+    down: migration_20261118_155833_add_slug_to_projects_and_missions.down,
+    name: '20261118_155833_add_slug_to_projects_and_missions'
   },
 ];

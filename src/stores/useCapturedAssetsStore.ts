@@ -165,6 +165,33 @@ export const useCapturedAssetsStore = create<CapturedAssetsState>()(
         set((state) => ({
           assets: cleanDuplicateAssets([newAsset, ...state.assets]),
         }))
+
+        // Also buffer in IndexedDB for sync when offline (imageData is base64 — stored as-is)
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          import('@/lib/offlineDB')
+            .then(({ offlineSave }) => {
+              return offlineSave('drafts', {
+                _operation: 'create',
+                assetId: newAsset.id,
+                type: newAsset.type,
+                title: newAsset.title,
+                status: newAsset.status,
+                imageData: newAsset.imageData,
+                details: JSON.stringify(newAsset.details),
+                timestamp: newAsset.timestamp,
+              })
+            })
+            .then(() => {
+              return import('@/stores/useOfflineStore')
+            })
+            .then(({ useOfflineStore }) => {
+              useOfflineStore.getState().refreshPendingCount()
+            })
+            .catch(() => {
+              // Silent fail — asset is already in localStorage
+            })
+        }
+
         return newAsset
       },
 

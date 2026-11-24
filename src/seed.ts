@@ -168,6 +168,7 @@ async function seed() {
     collection: 'projects',
     data: {
       title: 'JEE Advanced 2027 Preparation',
+      slug: 'jee-advanced-2027-preparation',
       description: 'Complete preparation roadmap for JEE Advanced including Physics, Mathematics, and Chemistry modules.',
       status: 'active',
       deadline: '2027-05-15',
@@ -181,6 +182,7 @@ async function seed() {
     collection: 'projects',
     data: {
       title: 'Full-Stack Developer Portfolio',
+      slug: 'full-stack-developer-portfolio',
       description: 'Build production-grade web apps, contribute to open source, and create a strong GitHub profile.',
       status: 'active',
       deadline: '2027-03-01',
@@ -196,6 +198,7 @@ async function seed() {
     collection: 'missions',
     data: {
       title: 'Master Mechanics & Thermodynamics',
+      slug: 'master-mechanics-thermodynamics',
       type: 'study',
       description: 'Complete HC Verma Vol 1 and solve all exercises for Mechanics and Thermodynamics.',
       targetHours: 200,
@@ -211,6 +214,7 @@ async function seed() {
     collection: 'missions',
     data: {
       title: 'Calculus Mastery',
+      slug: 'calculus-mastery',
       type: 'study',
       description: 'Differential and Integral calculus from basic limits to multivariable. Cover all PYQ patterns.',
       targetHours: 150,
@@ -226,6 +230,7 @@ async function seed() {
     collection: 'missions',
     data: {
       title: 'Daily Exercise Routine',
+      slug: 'daily-exercise-routine',
       type: 'habit',
       description: '30-minute daily workout — alternating cardio and strength training.',
       targetHours: 50,
@@ -241,6 +246,7 @@ async function seed() {
     collection: 'missions',
     data: {
       title: 'Learn Next.js & Payload CMS',
+      slug: 'learn-next-js-payload-cms',
       type: 'study',
       description: 'Build 3 full-stack projects using Next.js 15+ and Payload CMS 3.x.',
       targetHours: 120,

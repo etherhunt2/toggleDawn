@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { slugField } from 'payload'
 
 import { authenticated } from '../access/authenticated'
 import { ownOnly } from '../access/ownOnly'
@@ -6,6 +7,7 @@ import { adminOnly, adminOnlyField, authenticatedField } from '../access/adminOn
 import { setOwner } from '../hooks/setOwner'
 import { computeMissionProgress } from '../hooks/computeMissionProgress'
 import { checkRole } from '../access/checkRole'
+import { withCacheHooks, CacheTTL } from '../lib/payloadCacheHooks'
 
 /**
  * Missions collection — focused goals within a Project.
@@ -51,9 +53,9 @@ export const Missions: CollectionConfig = {
     description:
       'Focused goals within a project. Flexibly measured by timer hours, streaks, notes, tasks, or time-slots.',
   },
-  hooks: {
+  hooks: withCacheHooks('missions', {
     beforeChange: [setOwner, computeMissionProgress],
-  },
+  }, CacheTTL.ACTIVE),
   fields: [
     // ─────────────────────────────────────────────────────────────
     // 1. CORE IDENTITY
@@ -562,6 +564,7 @@ export const Missions: CollectionConfig = {
         description: 'Owner is set automatically on creation.',
       },
     },
+    slugField(),
   ],
   timestamps: true,
 }

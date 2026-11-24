@@ -16,6 +16,7 @@ import {
 interface ProjectData {
   id: number
   title: string
+  slug?: string | null
   description?: string | null
   status: string
   adminStatus?: string | null
@@ -295,7 +296,7 @@ export const ProjectsListClient: React.FC<Props> = ({ data }) => {
               return (
                 <Link
                   key={p.id}
-                  href={`/projects/${p.id}`}
+                  href={`/projects/${p.slug || p.id}`}
                   className="group block"
                 >
                   <div

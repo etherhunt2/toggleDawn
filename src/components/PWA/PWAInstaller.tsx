@@ -13,6 +13,7 @@ import {
   WifiOff,
   ShieldCheck,
 } from 'lucide-react'
+import { useOfflineStore } from '@/stores/useOfflineStore'
 
 // Helper event name for triggering install from any component
 export const PWA_INSTALL_EVENT = 'toggledawn:pwa-install'
@@ -90,6 +91,15 @@ export function PWAInstaller() {
                 console.log('[ToggleDawn PWA] New version ready for activation.')
               }
             })
+          }
+        })
+
+        // Listen for BACKGROUND_SYNC_TRIGGERED message from SW
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'BACKGROUND_SYNC_TRIGGERED') {
+            console.log('[ToggleDawn PWA] Background sync triggered by SW.')
+            // Fire syncAll from the store
+            useOfflineStore.getState().syncAll().catch(console.warn)
           }
         })
       } catch (error) {

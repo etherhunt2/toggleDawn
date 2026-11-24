@@ -1,9 +1,16 @@
 /**
  * useFlashCardStore — Zustand store for flash card state.
  * Manages deck loading, study progress, and CRUD operations.
+ * Supports full offline CRUD with "latest timestamp wins" sync.
  */
 
 import { create } from 'zustand'
+import { offlineSave, offlineUpdate, offlineDeleteOp } from '@/lib/offlineDB'
+
+// Use a lazy getter to avoid circular dependency with useOfflineStore
+function getOfflineStore() {
+  return import('@/stores/useOfflineStore').then((m) => m.useOfflineStore)
+}
 
 export interface FlashCard {
   id: number
@@ -161,6 +168,29 @@ export const useFlashCardStore = create<FlashCardState>()((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   createCard: async (data) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+    if (!isOnline) {
+      try {
+        const localId = await offlineSave('flash-cards', { ...data, _operation: 'create' })
+        const tempCard: FlashCard = {
+          id: -localId,
+          title: data.title ?? '',
+          contentType: 'text',
+          ...data,
+          createdAt: new Date().toISOString(),
+        }
+        set((state) => ({ cards: [...state.cards, tempCard] }))
+        const store = await getOfflineStore()
+        await store.getState().refreshPendingCount()
+        return tempCard
+      } catch (e: any) {
+        set({ error: e.message })
+        return null
+      }
+    }
+
+    // Online path
     try {
       const res = await fetch('/api/flash-cards', {
         method: 'POST',
@@ -179,6 +209,23 @@ export const useFlashCardStore = create<FlashCardState>()((set, get) => ({
   },
 
   updateCard: async (id, data) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+    if (!isOnline) {
+      try {
+        await offlineUpdate('flash-cards', id, data)
+        set((state) => ({
+          cards: state.cards.map((c) => (c.id === id ? { ...c, ...data } : c)),
+        }))
+        const store = await getOfflineStore()
+        await store.getState().refreshPendingCount()
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // Online path
     try {
       const res = await fetch(`/api/flash-cards/${id}`, {
         method: 'PATCH',
@@ -198,6 +245,25 @@ export const useFlashCardStore = create<FlashCardState>()((set, get) => ({
   },
 
   deleteCard: async (id) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+    if (!isOnline) {
+      try {
+        // Only queue a delete op for real server records (positive ids)
+        if (id > 0) await offlineDeleteOp('flash-cards', id)
+        set((state) => ({
+          cards: state.cards.filter((c) => c.id !== id),
+          currentIndex: Math.min(state.currentIndex, Math.max(0, state.cards.length - 2)),
+        }))
+        const store = await getOfflineStore()
+        await store.getState().refreshPendingCount()
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // Online path
     try {
       const res = await fetch(`/api/flash-cards/${id}`, { method: 'DELETE', credentials: 'include' })
       if (!res.ok) return false
@@ -226,4 +292,3 @@ export const useFlashCardStore = create<FlashCardState>()((set, get) => ({
       searchQuery: '',
     }),
 }))
-

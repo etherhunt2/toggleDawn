@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { authenticated } from '../access/authenticated'
 import { ownOnly } from '../access/ownOnly'
 import { setOwner } from '../hooks/setOwner'
+import { withCacheHooks, CacheTTL } from '../lib/payloadCacheHooks'
 
 /**
  * MissionTypes collection — user-defined mission categories.
@@ -31,9 +32,9 @@ export const MissionTypes: CollectionConfig = {
     description:
       'User-defined mission types. Each type defines its measurement strategy — timer hours, streaks, notes, tasks, time-slots, or any combination.',
   },
-  hooks: {
+  hooks: withCacheHooks('mission-types', {
     beforeChange: [setOwner],
-  },
+  }, CacheTTL.REFERENCE),
   fields: [
     // ─────────────────────────────────────────────────────────────
     // 1. IDENTITY

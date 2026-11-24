@@ -1,4 +1,5 @@
 import type { CollectionConfig, Field } from 'payload'
+import { slugField } from 'payload'
 
 import { authenticated } from '../access/authenticated'
 import { ownOnly } from '../access/ownOnly'
@@ -6,6 +7,7 @@ import { adminOnly, adminOnlyField, authenticatedField } from '../access/adminOn
 import { setOwner } from '../hooks/setOwner'
 import { computeProjectProgress } from '../hooks/computeProjectProgress'
 import { checkRole } from '../access/checkRole'
+import { withCacheHooks, CacheTTL } from '../lib/payloadCacheHooks'
 
 /**
  * Projects collection — top-level organizational container.
@@ -44,9 +46,9 @@ export const Projects: CollectionConfig = {
     description: 'Top-level containers for organizing missions and goals.',
     listSearchableFields: ['title', 'description'],
   },
-  hooks: {
+  hooks: withCacheHooks('projects', {
     beforeChange: [setOwner, computeProjectProgress],
-  },
+  }, CacheTTL.ACTIVE),
   fields: [
     // ─────────────────────────────────────────────────────────────
     // 1. CORE IDENTITY
@@ -355,6 +357,7 @@ export const Projects: CollectionConfig = {
         description: 'Owner is set automatically on creation.',
       },
     },
+    slugField(),
   ],
   timestamps: true,
 }

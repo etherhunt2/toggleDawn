@@ -58,6 +58,27 @@ export const useTestScoreStore = create<TestScoreState>()((set, get) => ({
   },
 
   createScore: async (data) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    if (!isOnline) {
+      const { offlineSave } = await import('@/lib/offlineDB')
+      const { useOfflineStore } = await import('@/stores/useOfflineStore')
+      const localId = await offlineSave('test-scores', { ...data, _operation: 'create' })
+      const tempScore: TestScore = {
+        id: -localId,
+        examName: data.examName || 'Untitled Exam',
+        subject: data.subject || 'General',
+        scoreObtained: data.scoreObtained || 0,
+        totalScore: data.totalScore || 100,
+        examDate: data.examDate || new Date().toISOString(),
+        examType: data.examType || 'practice',
+        createdAt: new Date().toISOString(),
+        ...data,
+      }
+      set((state) => ({ scores: [tempScore, ...state.scores] }))
+      await useOfflineStore.getState().refreshPendingCount()
+      return tempScore
+    }
+    // Online: existing logic
     try {
       const res = await fetch('/api/test-scores', {
         method: 'POST',

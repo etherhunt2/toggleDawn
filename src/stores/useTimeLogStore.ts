@@ -95,6 +95,26 @@ export const useTimeLogStore = create<TimeLogState>()((set, get) => ({
   },
 
   createLog: async (data) => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    if (!isOnline) {
+      const { offlineSave } = await import('@/lib/offlineDB')
+      const { useOfflineStore } = await import('@/stores/useOfflineStore')
+      const localId = await offlineSave('time-logs', { ...data, _operation: 'create' })
+      const tempLog: TimeLog = {
+        id: -localId,
+        startTime: data.startTime || new Date().toISOString(),
+        endTime: data.endTime || new Date().toISOString(),
+        category: data.category || 'General',
+        createdAt: new Date().toISOString(),
+        ...data,
+      }
+      set((state) => ({
+        logs: [tempLog, ...state.logs],
+      }))
+      await useOfflineStore.getState().refreshPendingCount()
+      return tempLog
+    }
+    // Online: existing logic
     try {
       const res = await fetch('/api/time-logs', {
         method: 'POST',

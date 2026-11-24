@@ -17,12 +17,15 @@ import {
   AlertTriangle,
   Video,
   ShieldAlert,
+  Code,
+  Flame,
 } from 'lucide-react'
 
 interface ProjectDetailData {
   project: {
     id: number
     title: string
+    slug?: string | null
     description?: string | null
     status: string
     adminStatus?: string | null
@@ -39,10 +42,19 @@ interface ProjectDetailData {
   missions: Array<{
     id: number
     title: string
-    type: string
+    slug?: string | null
+    type?: string | null
     status: string
     targetHours: number
     description?: string | null
+    missionType?: { id: number; name: string; presetIcon?: string | null } | null
+    adminStatus?: string | null
+    computedProgress?: number | null
+    priority?: string | null
+    deadline?: string | null
+    startDate?: string | null
+    streakData?: { currentStreak?: number | null; longestStreak?: number | null } | null
+    targetConfig?: { mode: string } | null
   }>
   timeLogs: Array<{
     id: number
@@ -84,6 +96,8 @@ const MISSION_TYPE_ICONS: Record<string, React.ReactNode> = {
   study: <FileText className="w-3.5 h-3.5 text-blue-400" />,
   habit: <Zap className="w-3.5 h-3.5 text-purple-400" />,
   hobby: <Target className="w-3.5 h-3.5 text-emerald-400" />,
+  coding: <Code className="w-3.5 h-3.5 text-amber-400" />,
+  'lead-gen': <TrendingUp className="w-3.5 h-3.5 text-rose-400" />,
 }
 
 const MISSION_STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -484,56 +498,97 @@ export const ProjectDetailClient: React.FC<Props> = ({ data }) => {
                 const missionLoggedMinutes = timeLogs
                   .filter((tl) => String(tl.mission) === String(m.id))
                   .reduce((sum, tl) => sum + (tl.duration || 0), 0)
-                const missionProgress =
+                const localProgress =
                   m.targetHours > 0
                     ? Math.min(
                         100,
                         Math.round((missionLoggedMinutes / 60 / m.targetHours) * 100),
                       )
                     : 0
+                const progressToDisplay =
+                  typeof m.computedProgress === 'number' && m.computedProgress > 0
+                    ? m.computedProgress
+                    : localProgress
+
+                const typeKey = m.type || ''
+                const typeIcon =
+                  MISSION_TYPE_ICONS[typeKey] || <Target className="w-3.5 h-3.5 text-slate-500" />
+                const typeName =
+                  m.missionType?.name ||
+                  (m.type ? m.type.charAt(0).toUpperCase() + m.type.slice(1) : 'Mission')
 
                 return (
-                  <div
+                  <Link
                     key={m.id}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl bg-black/30 border border-white/5"
+                    href={`/missions/${m.slug || m.id}`}
+                    className="block group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0">
-                      {MISSION_TYPE_ICONS[m.type] || (
-                        <Target className="w-3.5 h-3.5 text-slate-500" />
-                      )}
-                    </div>
+                    <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-black/30 border border-white/5 hover:border-[#00f0ff]/40 hover:bg-black/50 transition-all">
+                      <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0">
+                        {typeIcon}
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="font-hud text-[10px] sm:text-[11px] text-slate-200 font-bold truncate">
-                          {m.title}
-                        </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {MISSION_STATUS_ICONS[m.status]}
-                          <span
-                            className={`font-hud text-[7px] px-1.5 py-0.5 rounded border uppercase ${STATUS_COLORS[m.status] || STATUS_COLORS.active}`}
-                          >
-                            {m.status}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-hud text-[10px] sm:text-[11px] text-slate-200 font-bold truncate group-hover:text-[#00f0ff] transition-colors">
+                              {m.title}
+                            </span>
+                            <span className="font-hud text-[7px] px-1.5 py-0.2 rounded border border-[#00f0ff]/30 bg-[#00f0ff]/5 text-[#00f0ff] uppercase">
+                              {typeName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                            {m.streakData?.currentStreak ? (
+                              <span className="font-data text-[8px] text-amber-300 flex items-center gap-0.5">
+                                <Flame className="w-2.5 h-2.5 text-amber-400" />
+                                {m.streakData.currentStreak}d
+                              </span>
+                            ) : null}
+                            {m.adminStatus && m.adminStatus !== 'none' && (
+                              <span
+                                className={`font-hud text-[7px] px-1.5 py-0.5 rounded border uppercase ${STATUS_COLORS[m.adminStatus] || 'bg-rose-500/20 text-rose-300 border-rose-500/40'}`}
+                              >
+                                {m.adminStatus === 'terminated' ? '🛑 Terminated' : '✅ Verified'}
+                              </span>
+                            )}
+                            {m.priority && (
+                              <span className="font-hud text-[7px] px-1 py-0.2 rounded bg-white/5 text-slate-400">
+                                {m.priority === 'critical'
+                                  ? '🔴'
+                                  : m.priority === 'high'
+                                  ? '🟠'
+                                  : m.priority === 'medium'
+                                  ? '🟡'
+                                  : '🟢'}
+                              </span>
+                            )}
+                            {MISSION_STATUS_ICONS[m.status]}
+                            <span
+                              className={`font-hud text-[7px] px-1.5 py-0.5 rounded border uppercase ${STATUS_COLORS[m.status] || STATUS_COLORS.active}`}
+                            >
+                              {m.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Mission progress */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 rounded-full bg-black/60 border border-white/5 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-purple-500"
+                              style={{ width: `${progressToDisplay}%` }}
+                            />
+                          </div>
+                          <span className="font-data text-[8px] text-slate-400">
+                            {progressToDisplay}%
+                            {m.targetHours > 0 &&
+                              ` (${formatHours(missionLoggedMinutes)} / ${m.targetHours}h)`}
                           </span>
                         </div>
                       </div>
-
-                      {/* Mission progress */}
-                      {m.targetHours > 0 && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1 rounded-full bg-black/60 border border-white/5 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-purple-500"
-                              style={{ width: `${missionProgress}%` }}
-                            />
-                          </div>
-                          <span className="font-data text-[8px] text-slate-500">
-                            {formatHours(missionLoggedMinutes)} / {m.targetHours}h
-                          </span>
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
